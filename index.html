@@ -178,18 +178,75 @@
     Coordinates.ShapeFromArray(geometry, pointArray).then(async res =>{
       res.shapeData.map((subShape, sIdx) => {
         var pid = sIdx%7
+        var ox, oy, oz
         switch(pid){
-          case 0: x = -3, y = 0, z = 0; break
-          case 1: x = -2, y = 0, z = 0; break
-          case 2: x = -1, y = 0, z = 0; break
-          case 3: x = 0, y = 0, z = 0; break
-          case 4: x = 1, y = 0, z = 0; break
-          case 5: x = 2, y = 0, z = 0; break
-          case 6: x = 3, y = 0, z = 0; break
+          case 0:
+            //x = -30, y = 0, z = 0;
+            //ox = 23.25, oy = 10, oz = 0;
+            x = -30, y = 0, z = 0;
+            ox = 10.75*2.1575, oy = 0, oz = .00125;
+          break
+          case 1:
+            x = -20, y = 0, z = 0;
+            ox = 16, oy = 0, oz = 0;
+          break
+          case 2:
+            x = -10, y = 0, z = 0;
+            ox = 10, oy = 0, oz = -.0025;
+          break
+          case 3:
+            x = 0, y = 0, z = 0;
+            ox = 0, oy = 0, oz = 0;
+          break
+          case 4:
+            x = 10, y = 0, z = 0;
+            ox = -10, oy = 0, oz = -.004;
+          break
+          case 5:
+            x = 20, y = 0, z = 0;
+            ox = -21, oy = 0, oz = -.006;
+          break
+          case 6:
+            x = 30, y = 0, z = 0;
+            ox = -31, oy = 0, oz = -.007;
+          break
         }
-        pieceBank[sIdx].x = x * 10
-        pieceBank[sIdx].y = y * 10
-        pieceBank[sIdx].z = z * 10
+        var pIdx = sIdx + pid
+        pieceBank[pIdx].x = x
+        pieceBank[pIdx].y = y
+        pieceBank[pIdx].z = z
+        pieceBank[pIdx].ox = ox
+        pieceBank[pIdx].oy = oy
+        pieceBank[pIdx].oz = oz
+        
+        var ls = 9
+        var coords = []
+        for(var i = 0; i < 4; i ++){
+          coords.push([
+            pieceBank[pIdx].x + S(p=Math.PI*2/4*i+Math.PI/4) * ls,
+            pieceBank[pIdx].y + C(p) * ls
+          ])
+        }
+        
+        var l1,l2,l3,l4
+        var oIdx = 2
+        var mag = .25
+        for(var i = 0 ; i < res.vstate.length; i += 3){
+          x = res.vstate[i+0]
+          y = res.vstate[i+1]
+          z = res.vstate[i+2]
+          if(x > coords[l1=(oIdx+0)%4][0] && y > coords[l1][1] &&
+             x > coords[l2=(oIdx+1)%4][0] && y < coords[l2][1] &&
+             x < coords[l3=(oIdx+2)%4][0] && y < coords[l3][1] &&
+             x < coords[l4=(oIdx+3)%4][0] && y > coords[l4][1]){
+            //res.vstate[i+0] += pieceBank[sIdx].ox*mag
+            //res.vstate[i+1] += pieceBank[sIdx].oy*mag
+            //res.vstate[i+2] += pieceBank[sIdx].oz*mag
+            res.vertices[i+0] += pieceBank[pIdx].ox*mag
+            res.vertices[i+1] += pieceBank[pIdx].oy*mag
+            res.vertices[i+2] += pieceBank[pIdx].oz*mag
+          }
+        }
       })
       shapes.push(res)
       await shader.ConnectGeometry(res)
@@ -233,11 +290,12 @@
   
   if(0) Coordinates.LoadFPSControls(renderer, {
     flyMode: true,
+    mSpeed: .5,
     crossharSel: 2,
     crosshairSize: .5,
   })
   
-  renderer.z = 45
+  renderer.z = 20
   
   window.Draw = () => {
     var t = renderer.t
@@ -273,9 +331,9 @@
     ctx.clearRect(0,0,w,h)
     ctx.strokeStyle = 'red'
     pieceBank.map((piece, pIdx) => {
-      x = piece.x
-      y = piece.y
-      z = piece.z
+      x = piece.x + piece.ox
+      y = piece.y + piece.oy
+      z = piece.z + piece.oz
       var coords = Coordinates.GetShaderCoord(x,y,z,{
         x: 0,
         y: 0,
@@ -292,7 +350,7 @@
           ctx.lineTo(x, y)
         }
         ctx.closePath()
-        ctx.stroke()
+        //ctx.stroke()
       }
     })
   }
