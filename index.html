@@ -25,7 +25,7 @@
   }
   var renderer = await Coordinates.Renderer(rendererOptions)
   
-  var refTexture = 'https://skyboxes2.verymad.net/images/quickgrid.png'
+  var refTexture = 'https://skyboxes2.verymad.net/images/stars2.jpg'
   
   var S = Math.sin
   var C = Math.cos
@@ -55,10 +55,71 @@
     { uniform: {
       type: 'phong',
       value: 0
+    } },
+    { uniform: {
+      type: 'refraction2',
+      angleOfRefraction: 1,
+      map: refTexture,
+      value: .1
+    } },
+  ]
+  var boardShader = await Coordinates.BasicShader(renderer, shaderOptions)
+
+  var shaderOptions = [
+    {lighting: {type: 'ambientLight', value: 1}},
+    { uniform: {
+      type: 'phong',
+      value: 0
     } }
   ]
   var backgroundShader = await Coordinates.BasicShader(renderer, shaderOptions)
 
+  var keyTimerInterval = .5
+  var keys = Array(256).fill(false)
+  var keyTimers = Array(256).fill(0)
+  
+  var boardThetaInterval = Math.PI/3
+  var boardTheta = 0
+  
+  const DoKeys = () =>{
+    var t = renderer.frameCount / 60
+    keys.map((state, key) => {
+      if(state){
+        switch(key){
+          case 65: // a
+            if(keyTimers[key] < t){
+              boardTheta += Math.PI*2/3
+              keyTimers[key] = t + keyTimerInterval
+            }
+          break
+          case 68: // d
+            if(keyTimers[key] < t){
+              boardTheta -= Math.PI*2/3
+              keyTimers[key] = t + keyTimerInterval
+            }
+          break
+          case 37: // left arrow
+          break
+          case 38: // up arrow
+          break
+          case 39: // right arrow
+          break
+          case 40: // down arrow
+          break
+        }
+      }
+    })
+  }
+
+  window.onkeydown = e => {
+    console.log(e.keyCode)
+    keys[e.keyCode] = true
+  }
+
+  window.onkeyup = e => {
+    keyTimers[e.keyCode] = 0
+    keys[e.keyCode] = false
+  }
 
   var shapes = []
 
@@ -109,20 +170,38 @@
   var geoOptions = {
     shapeType: 'obj',
     url: 'https://srmcgann.github.io/quadtris/board.obj',
-    map: 'https://srmcgann.github.io/quadtris/tetraminoes.png',
+    map: 'https://srmcgann.github.io/quadtris/board.png',
     name: 'board',
     scaleX: -1,
     scaleY: 1,
     scaleZ: 1,
-    colorMix: 0,
+    y: 9.5,
+    color: 0x000000,
+    colorMix: .75,
   }
   await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
     shapes.push(geometry)
-    await shader.ConnectGeometry(geometry)
+    await boardShader.ConnectGeometry(geometry)
  })
   
   
-  if(1) Coordinates.LoadFPSControls(renderer, {
+  var geoOptions = {
+    shapeType: 'sprite',
+    map: 'https://srmcgann.github.io/Coordinates/resources/stars/star1.png',
+    name: 'board',
+    y: 9.5,
+    disableDepthTest: true,
+    size: 100,
+    z: 10,
+    alpha: .2,
+  }
+  await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+    shapes.push(geometry)
+    await boardShader.ConnectGeometry(geometry)
+ })
+  
+  
+  if(0) Coordinates.LoadFPSControls(renderer, {
     flyMode: true,
     crossharSel: 2,
     crosshairSize: .5,
@@ -132,6 +211,9 @@
   
   window.Draw = () => {
     var t = renderer.t
+    
+    DoKeys()
+    
     renderer.Clear()
     shapes.forEach(shape => {
       switch(shape.name){
@@ -142,6 +224,13 @@
           renderer.Draw(shape)
         break
         case 'board':
+          if(Math.abs(boardTheta) > .001){
+            var theta = boardThetaInterval * (boardTheta > 0 ? -1: 1)
+            shape.roll += theta / 10
+            boardTheta += theta / 10
+          }else{
+            boardTheta = 0
+          }
           renderer.Draw(shape)
         break
         default:
