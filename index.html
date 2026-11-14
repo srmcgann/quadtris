@@ -51,7 +51,7 @@
   var shader = await Coordinates.BasicShader(renderer, shaderOptions)
 
   var shaderOptions = [
-    {lighting: {type: 'ambientLight', value: 1}},
+    {lighting: {type: 'ambientLight', value: 1.33}},
     { uniform: {
       type: 'phong',
       value: 0
@@ -81,6 +81,17 @@
   var boardThetaInterval = Math.PI/3
   var boardTheta = 0
   
+  var cl = 1
+  var rw = 1
+  var br = 30
+  var sp = 0
+  var pieceBank = Array(7*cl*rw*br).fill().map((v, i) => {
+    id: i%7,
+    x: 0,
+    y: 0,
+    z: 0,
+  })
+  
   const DoKeys = () =>{
     var t = renderer.frameCount / 60
     keys.map((state, key) => {
@@ -88,13 +99,13 @@
         switch(key){
           case 65: // a
             if(keyTimers[key] < t){
-              boardTheta += Math.PI*2/3
+              boardTheta += Math.PI*4/3
               keyTimers[key] = t + keyTimerInterval
             }
           break
           case 68: // d
             if(keyTimers[key] < t){
-              boardTheta -= Math.PI*2/3
+              boardTheta -= Math.PI*4/3
               keyTimers[key] = t + keyTimerInterval
             }
           break
@@ -137,10 +148,6 @@
     await backgroundShader.ConnectGeometry(geometry)
   })
   
-  var cl = 1
-  var rw = 1
-  var br = 30
-  var sp = 1
   var pointArray = []
   Array(cl*rw*br).fill().map((v,i) => {
     x = ((i%cl)-cl/2+.5) * sp
@@ -156,7 +163,8 @@
     name: 'pieces',
     scaleX: -1,
     scaleY: 1,
-    scaleZ: 1,
+    scaleZ: .25,
+    objZ: -.25,
     colorMix: 0,
   }
   await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
@@ -207,7 +215,7 @@
     crosshairSize: .5,
   })
   
-  renderer.z = 50
+  renderer.z = 45
   
   window.Draw = () => {
     var t = renderer.t
@@ -226,8 +234,8 @@
         case 'board':
           if(Math.abs(boardTheta) > .001){
             var theta = boardThetaInterval * (boardTheta > 0 ? -1: 1)
-            shape.roll += theta / 10
-            boardTheta += theta / 10
+            shape.roll += theta / 6
+            boardTheta += theta / 6
           }else{
             boardTheta = 0
           }
