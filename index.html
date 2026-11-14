@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Coordinates boilerplate example</title>
+    <style>
+      body, html{
+        background: #000;
+        margin: 0;
+        min-height: 100vh;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+<script type="module">
+
+  import * as Coordinates from
+  "https://srmcgann.github.io/Coordinates/coordinates.min.js"
+
+  var rendererOptions = {
+    ambientLight: .5, margin: 0,
+    fov: 1e3, width: 1920, height: 1080,
+    //fov: 1e3/2, width: 1920/2, height: 1080/2,
+    // uncomment above for lower-res, higher-performance canvas
+  }
+  var renderer = await Coordinates.Renderer(rendererOptions)
+  
+  var refTexture = 'https://skyboxes2.verymad.net/images/quickgrid.png'
+  
+  var S = Math.sin
+  var C = Math.cos
+  var Rn = Math.random
+  
+  var x, y, z, p, q, d
+  
+  Coordinates.AnimationLoop(renderer, 'Draw')
+
+  var shaderOptions = [
+    {lighting: {type: 'ambientLight', value: .5}},
+    { uniform: {
+      type: 'phong',
+      value: .25
+    } },
+    { uniform: {
+      type: 'reflection',
+      map: refTexture,
+      enabled: false,
+      value: .1
+    } },
+  ]
+  var shader = await Coordinates.BasicShader(renderer, shaderOptions)
+
+  var shaderOptions = [
+    {lighting: {type: 'ambientLight', value: 1}},
+    { uniform: {
+      type: 'phong',
+      value: 0
+    } }
+  ]
+  var backgroundShader = await Coordinates.BasicShader(renderer, shaderOptions)
+
+
+  var shapes = []
+
+  var geoOptions = {
+    shapeType: 'dodecahedron',
+    name: 'background',
+    sphereize: 1,
+    subs: 4,
+    map: refTexture,
+    size: 5e3,
+    colorMix: 0,
+  }
+  await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+    shapes.push(geometry)
+    await backgroundShader.ConnectGeometry(geometry)
+  })
+  
+  var cl = 1
+  var rw = 1
+  var br = 30
+  var sp = 1
+  var pointArray = []
+  Array(cl*rw*br).fill().map((v,i) => {
+    x = ((i%cl)-cl/2+.5) * sp
+    y = (((i/cl|0)%rw)-rw/2 + .5) * sp
+    z = ((i/cl/rw|0)-br/2 + .5) * sp
+    pointArray.push([x,y,z])
+  })
+  
+  var geoOptions = {
+    shapeType: 'obj',
+    url: 'https://srmcgann.github.io/quadtris/tetraminoes.obj',
+    map: 'https://srmcgann.github.io/quadtris/tetraminoes.png',
+    name: 'pieces',
+    scaleX: -1,
+    scaleY: 1,
+    scaleZ: 1,
+    colorMix: 0,
+  }
+  await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+    Coordinates.ShapeFromArray(geometry, pointArray).then(async res =>{
+      shapes.push(res)
+      await shader.ConnectGeometry(res)
+    })
+  })
+  
+  
+  var geoOptions = {
+    shapeType: 'obj',
+    url: 'https://srmcgann.github.io/quadtris/board.obj',
+    map: 'https://srmcgann.github.io/quadtris/tetraminoes.png',
+    name: 'board',
+    scaleX: -1,
+    scaleY: 1,
+    scaleZ: 1,
+    colorMix: 0,
+  }
+  await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+    Coordinates.ShapeFromArray(geometry, pointArray).then(async res =>{
+      shapes.push(res)
+      await shader.ConnectGeometry(res)
+    })
+  })
+  
+  
+  if(1) Coordinates.LoadFPSControls(renderer, {
+    flyMode: true,
+    crossharSel: 2,
+    crosshairSize: .5,
+  })
+  
+  renderer.z = 50
+  
+  window.Draw = () => {
+    var t = renderer.t
+    renderer.Clear()
+    shapes.forEach(shape => {
+      switch(shape.name){
+        case 'background':
+          renderer.Draw(shape)
+        break
+        case 'pieces':
+          renderer.Draw(shape)
+        break
+        case 'board':
+          renderer.Draw(shape)
+        break
+        default:
+          renderer.Draw(shape)
+        break
+      }
+    })
+  }
+  
+</script>
+  </body>
+</html>
