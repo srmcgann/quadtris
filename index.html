@@ -20,8 +20,6 @@
   var rendererOptions = {
     ambientLight: .5, margin: 0,
     fov: 1e3, width: 1920, height: 1080,
-    //fov: 1e3/2, width: 1920/2, height: 1080/2,
-    // uncomment above for lower-res, higher-performance canvas
   }
   var renderer = await Coordinates.Renderer(rendererOptions)
   
@@ -86,14 +84,11 @@
   var boardThetaInterval = Math.PI/3
   var boardTheta = 0
   
-  var cl = 1
-  var rw = 1
-  var br = 6
-  var sp = 0
-  var pieceBank = Array(7*cl*rw*br).fill().map((v, i) => {
+  var iPc = 100
+  var pieceBank = Array(7*iPc).fill().map((v, i) => {
     return{
       id: i%7,
-      x: 0,
+      x: 1e5,
       y: 0,
       z: 0,
       vertIDs: []
@@ -107,14 +102,18 @@
         switch(key){
           case 65: // a
             if(keyTimers[key] < t){
-              boardTheta += Math.PI*4/3
+              boardTheta += Math.PI*2/3
               keyTimers[key] = t + keyTimerInterval
+              keys[key] = false
+              state = false
             }
           break
           case 68: // d
             if(keyTimers[key] < t){
-              boardTheta -= Math.PI*4/3
+              boardTheta -= Math.PI*2/3
               keyTimers[key] = t + keyTimerInterval
+              keys[key] = false
+              state = false
             }
           break
           case 37: // left arrow
@@ -141,6 +140,8 @@
   }
 
   var shapes = []
+  var pieces = []
+  var box    = []
 
   var geoOptions = {
     shapeType: 'dodecahedron',
@@ -156,13 +157,7 @@
     await backgroundShader.ConnectGeometry(geometry)
   })
   
-  var pointArray = []
-  Array(cl*rw*br).fill().map((v,i) => {
-    x = ((i%cl)-cl/2+.5) * sp
-    y = (((i/cl|0)%rw)-rw/2 + .5) * sp
-    z = ((i/cl/rw|0)-br/2 + .5) * sp
-    pointArray.push([x,y,z])
-  })
+  var pointArray = Array(iPc).fill().map((v,i) => [0,0,0])
   
   var baseShapeVerts
   var geoOptions = {
@@ -178,91 +173,58 @@
   }
   await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
     Coordinates.ShapeFromArray(geometry, pointArray).then(async res =>{
-      var ox, oy, oz
-      for(var k = 0; k < cl*rw*br; k++){
-        for(var m = 0; m < 7; m++){
-          switch(m){
-            case 0:
-              x = -30, y = 0, z = 0;
-              ox = 10.75*2.1575, oy = 0, oz = 0;
-            break
-            case 1:
-              x = -20, y = 0, z = 0;
-              ox = 16, oy = 0, oz = 0;
-            break
-            case 2:
-              x = -10, y = 0, z = 0;
-              ox = 10, oy = 0, oz = 0;
-            break
-            case 3:
-              x = 0, y = 0, z = 0;
-              ox = 0, oy = 0, oz = 0;
-            break
-            case 4:
-              x = 10, y = 0, z = 0;
-              ox = -10, oy = 0, oz = 0;
-            break
-            case 5:
-              x = 20, y = 0, z = 0;
-              ox = -21, oy = 0, oz = 0;
-            break
-            case 6:
-              x = 30, y = 0, z = 0;
-              ox = -31, oy = 0, oz = 0;
-            break
+      var zSpacing = []
+      var sp = .5
+      for(var i = 0; i < 7; i ++){
+        zSpacing.push((i-3.5)*sp)
+      }
+      
+      for(var i = 0; i < res.stride; i += 9){
+        var pcIdx = i/3/iPc/7
+        var tgt = -1
+        var x1 = res.vertices[i+0]
+        var y1 = res.vertices[i+1]
+        var z1 = res.vertices[i+2]
+        var x2 = res.vertices[i+3]
+        var y2 = res.vertices[i+4]
+        var z2 = res.vertices[i+5]
+        var x3 = res.vertices[i+6]
+        var y3 = res.vertices[i+7]
+        var z3 = res.vertices[i+8]
+        var ax = (x1+x2+x3) / 3
+        var ay = (y1+y2+y3) / 3
+        var az = (z1+z2+z3) / 3
+        var mind = 6e6
+        zSpacing.map((v, i) => {
+          if((d=Math.abs(v-az)) < mind){
+            mind = d
+            tgt = i
           }
-          var pIdx = k*7+m
-          pieceBank[pIdx].x = x
-          pieceBank[pIdx].y = y
-          pieceBank[pIdx].z = z
-          pieceBank[pIdx].ox = ox
-          pieceBank[pIdx].oy = oy
-          pieceBank[pIdx].oz = oz
-          
-          var ls = 9
-          var coords = []
-          for(var i = 0; i < 4; i ++){
-            coords.push([
-              pieceBank[pIdx].x + S(p=Math.PI*2/4*i+Math.PI/4) * ls,
-              pieceBank[pIdx].y + C(p) * ls
-            ])
-          }
-          
-          var l1,l2,l3,l4
-          var oIdx = 2
-          var mag = .25
-          for(var j = 0 ; j < res.stride; j += 3){
-            var i = j + k * res.stride
-            var x2 = res.vertices[i+0]
-            var y2 = res.vertices[i+1]
-            var z2 = res.vertices[i+2]
-            if(x2 > coords[l1=(oIdx+0)%4][0] && y2 > coords[l1][1] &&
-               x2 > coords[l2=(oIdx+1)%4][0] && y2 < coords[l2][1] &&
-               x2 < coords[l3=(oIdx+2)%4][0] && y2 < coords[l3][1] &&
-               x2 < coords[l4=(oIdx+3)%4][0] && y2 > coords[l4][1]){
-               //console.log(1)
-              //res.vertices[i+0] += pieceBank[pIdx].ox*mag
-              //res.vertices[i+1] += pieceBank[pIdx].oy*mag
-              //res.vertices[i+2] += pieceBank[pIdx].oz*mag
-              res.vstate[i+0] += pieceBank[pIdx].ox*mag
-              res.vstate[i+1] += pieceBank[pIdx].oy*mag
-              res.vstate[i+2] += pieceBank[pIdx].oz*mag
-              pieceBank[pIdx].vertIDs.push(i)
-            }
+        })
+        if(tgt != -1){
+          pieceBank[tgt].z = -zSpacing[tgt]
+          for(var m = 0; m < 3; m++){
+            pieceBank[tgt].vertIDs.push(i+m*3)
           }
         }
       }
+      
+      for(var i = 7; i < iPc*7; i++){
+        pieceBank[i].x = pieceBank[i%7].x
+        pieceBank[i].y = pieceBank[i%7].y
+        pieceBank[i].z = pieceBank[i%7].z
+        pieceBank[i].vertIDs = structuredClone(pieceBank[i%7].vertIDs).map(v => {
+          return v+res.stride * ((i / 7 | 0)-0)
+        })
+      }
+      
       for(var i = 0 ; i < res.vstate.length; i += 3){
         res.vertices[i+0] += 1e5
-        res.vertices[i+1] += 1e5 + 9
-        res.vertices[i+2] += 1e5
-        res.vstate[i+0] += 1e5
-        res.vstate[i+1] += 1e5 + 9
-        res.vstate[i+2] += 1e5
+        res.vertices[i+1] += 6
+        res.vertices[i+2] += 0
       }
-      baseShapeVerts = structuredClone(res.vstate)
+      baseShapeVerts = structuredClone(res.vertices)
       shapes.push(res)
-      await shader.ConnectGeometry(res)
     })
   })
   
@@ -279,7 +241,7 @@
     color: 0x000000,
     colorMix: .75,
   }
-  await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+  if(1) await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
     shapes.push(geometry)
     await boardShader.ConnectGeometry(geometry)
  })
@@ -288,18 +250,35 @@
   var geoOptions = {
     shapeType: 'sprite',
     map: 'https://srmcgann.github.io/Coordinates/resources/stars/star1.png',
-    name: 'board',
+    name: 'sprite',
     y: 9.5,
     disableDepthTest: true,
     size: 100,
     z: 10,
     alpha: .2,
   }
-  await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+  if(1)await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
     shapes.push(geometry)
     await boardShader.ConnectGeometry(geometry)
- })
-  
+  })
+ 
+ 
+  const SpawnPiece = id => {
+    var subShape = pieceBank.filter((pc, idx) => {
+      return pc.id == id && pc.x == 1e5
+    })
+    if(subShape.length){
+      subShape[0].x = 0
+      pieces.push({
+        subShape: subShape[0],
+        x: -1e5,
+        y: subShape[0].y,
+        z: subShape[0].z-.25,
+      })
+    }else{
+      console.log('no piece generated!')
+    }
+  }
   
   if(0) Coordinates.LoadFPSControls(renderer, {
     flyMode: true,
@@ -310,10 +289,12 @@
   
   renderer.z = 45
   
+  
   window.Draw = () => {
     var t = renderer.t
     
     DoKeys()
+    if(!((t*60|0)%8)) SpawnPiece(Rn() * 7 | 0)
     
     renderer.Clear()
     shapes.forEach(shape => {
@@ -322,15 +303,27 @@
           renderer.Draw(shape)
         break
         case 'pieces':
-          for(var j = 0; j < br; j++){
+          if(!((t*60|0)%2)){
+            pieces.map(piece => {
+              // perform checks
+              piece.y -= 2
+            })
+          }
+          pieces.map(piece => {
+            piece.subShape.x = piece.x
+            piece.subShape.y = piece.y
+            piece.subShape.z = piece.z
+          })
+          if(1) for(var j = 0; j < iPc; j++){
             for(var i = 0; i < 7; i++){
               pieceBank[i+j*7].vertIDs.map(idx => {
-                shape.vertices[idx + 0] = baseShapeVerts[idx + 0] - 1e5 //+ i * 10 - 10
-                shape.vertices[idx + 1] = baseShapeVerts[idx + 1] - 1e5 - j * 10 + 30
-                shape.vertices[idx + 2] = baseShapeVerts[idx + 2] - 1e5
+                shape.vertices[idx + 0] = baseShapeVerts[idx + 0] + pieceBank[i+j*7].x
+                shape.vertices[idx + 1] = baseShapeVerts[idx + 1] + pieceBank[i+j*7].y
+                shape.vertices[idx + 2] = baseShapeVerts[idx + 2] + pieceBank[i+j*7].z
               })
             }
           }
+         
           renderer.Draw(shape)
         break
         case 'board':
@@ -346,33 +339,6 @@
         default:
           renderer.Draw(shape)
         break
-      }
-    })
-    
-    
-    ctx.clearRect(0,0,w,h)
-    ctx.strokeStyle = 'red'
-    pieceBank.map((piece, pIdx) => {
-      x = piece.x + piece.ox
-      y = piece.y + piece.oy
-      z = piece.z + piece.oz
-      var coords = Coordinates.GetShaderCoord(x,y,z,{
-        x: 0,
-        y: 0,
-        z: 0,
-        roll: 0,
-        pitch: 0,
-        yaw: 0,
-      }, renderer)
-      if(coords){
-        ctx.beginPath()
-        for(var i = 0; i < 4; i ++){
-          x = coords[0] + S(p = Math.PI*2/4*i+Math.PI/4) * 75
-          y = coords[1] + C(p) * 75
-          ctx.lineTo(x, y)
-        }
-        ctx.closePath()
-        //ctx.stroke()
       }
     })
   }
