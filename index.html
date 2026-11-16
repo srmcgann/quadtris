@@ -19,7 +19,7 @@
 
   var rendererOptions = {
     ambientLight: .5, margin: 0,
-    fov: 1e3, width: 1920, height: 1080,
+    fov: 800, width: 1920, height: 1080,
   }
   var renderer = await Coordinates.Renderer(rendererOptions)
   
@@ -109,23 +109,24 @@
           break
           case 37: // left arrow
             if(keyTimers[key] < t){
-              console.log(pieces[pieces.length-1].subShape.id)
+              pieces[pieces.length-1].ox -= 2
+              keyTimers[key] = t + keyTimerInterval / 2
+            }
+          break
+          case 38: // up arrow
+            if(keyTimers[key] < t){
               if(pieces[pieces.length-1].subShape.id != 2){
                 var stride = shapes.filter(v=>v.name=='pieces')[0].stride
                 var piecesShape = pieces[pieces.length-1].subShape
-                //shapes.filter(v=>v.name=='pieces')[0]
                 var pIdx = pieces.length -1
                 for(var i = 0; i < pieces[pIdx].subShape.vertIDs.length; i++){
                   var idx = pieces[pIdx].subShape.vertIDs[i]%stride
                   var x1 = piecesShape.baseVertices[idx + 0] + pieces[pIdx].subShape.x
                   var y1 = piecesShape.baseVertices[idx + 1] + pieces[pIdx].subShape.y
-                  var x2 = 0
-                  var y2 = 0
-                  
-                  p = Math.atan2(x1-x2, y1-y2) + Math.PI/2
-                  d = Math.hypot(x1-x2, y1-y2)
-                  x = -x2 + S(p) * d
-                  y = -y2 + C(p) * d
+                  p = Math.atan2(x1, y1) - Math.PI/2
+                  d = Math.hypot(x1, y1)
+                  x = S(p) * d
+                  y = C(p) * d
                   
                   piecesShape.baseVertices[idx + 0] = x - pieces[pIdx].x
                   piecesShape.baseVertices[idx + 1] = y - pieces[pIdx].y
@@ -134,11 +135,17 @@
               }
             }
           break
-          case 38: // up arrow
-          break
           case 39: // right arrow
+            if(keyTimers[key] < t){
+              pieces[pieces.length-1].ox += 2
+              keyTimers[key] = t + keyTimerInterval / 2
+            }
           break
           case 40: // down arrow
+            if(keyTimers[key] < t){
+              pieces[pieces.length-1].oy -= 2
+              keyTimers[key] = t + keyTimerInterval / 2
+            }
           break
         }
       }
@@ -265,10 +272,10 @@
     url: 'https://srmcgann.github.io/quadtris/board.obj',
     map: 'https://srmcgann.github.io/quadtris/board.png?2',
     name: 'board',
-    scaleX: -1,
-    scaleY: 1,
+    scaleX: -1.006,
+    scaleY: 1.006,
     scaleZ: 1,
-    y: 9.5,
+    y: 9.55,
     color: 0x000000,
     colorMix: .5,
   }
@@ -307,7 +314,7 @@
         y: 0,
         z: subShape[0].z -.2,
         ox: 1,
-        oy: -21.4,
+        oy: 6.4,
         oz: 0,
       })
     }else{
@@ -323,8 +330,8 @@
   })
   
   renderer.z = 45
-  //SpawnPiece(Rn() * 7 | 0)
-  SpawnPiece(2)
+  SpawnPiece(Rn() * 7 | 0)
+  //SpawnPiece(2)
   
   window.Draw = () => {
     var t = renderer.t
