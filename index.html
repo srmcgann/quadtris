@@ -86,11 +86,31 @@
   
   var iPc = 100
 
+  const SetTexture = (shapeName, url) => {
+    var shape = shapes.filter(v=>v.name == shapeName)
+    if(shape.length) {
+      shape[0].map = url
+      shape[0].rebindTextures = true
+    }
+  }
+
   const DoKeys = () =>{
     var t = renderer.frameCount / 60
     keys.map((state, key) => {
       if(state){
         switch(key){
+          case 49:
+            SetTexture('board', 'https://srmcgann.github.io/quadtris/board_grey.png')
+          break
+          case 50:
+            SetTexture('board', 'https://srmcgann.github.io/quadtris/board_green.png')
+          break
+          case 51:
+            SetTexture('board', 'https://srmcgann.github.io/quadtris/board_teal.png')
+          break
+          case 52:
+            SetTexture('board', 'https://srmcgann.github.io/quadtris/board_purple.png')
+          break
           case 65: // a
             if(keyTimers[key] < t){
               boardTheta += Math.PI*2/3
@@ -144,7 +164,7 @@
           case 40: // down arrow
             if(keyTimers[key] < t){
               pieces[pieces.length-1].oy -= 2
-              keyTimers[key] = t + keyTimerInterval / 2
+              keyTimers[key] = t + keyTimerInterval / 8
             }
           break
         }
@@ -200,8 +220,8 @@
     map: 'https://srmcgann.github.io/quadtris/tetraminoes.png',
     name: 'pieces',
     //disableDepthTest: true,
-    scaleX: -1,
-    scaleY: 1,
+    scaleX: -.95,
+    scaleY: -.95,
     scaleZ: .25,
     objZ: -.25,
     colorMix: 0,
@@ -270,16 +290,21 @@
   var geoOptions = {
     shapeType: 'obj',
     url: 'https://srmcgann.github.io/quadtris/board.obj',
-    map: 'https://srmcgann.github.io/quadtris/board.png?2',
+    map: 'https://srmcgann.github.io/quadtris/board_grey.png',
     name: 'board',
     scaleX: -1.006,
     scaleY: 1.006,
     scaleZ: 1,
-    y: 9.55,
+    y: 9.33,
     color: 0x000000,
     colorMix: .5,
   }
   if(1) await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+    for(var i = 0; i < geometry.vertices.length; i+=3){
+      geometry.vertices[i+0] += 0
+      geometry.vertices[i+1] += .05
+      geometry.vertices[i+2] += 0
+    }
     shapes.push(geometry)
     await boardShader.ConnectGeometry(geometry)
  })
@@ -313,8 +338,8 @@
         x: -1e5+1,
         y: 0,
         z: subShape[0].z -.2,
-        ox: 1,
-        oy: 6.4,
+        ox: -1,
+        oy: 6.25,
         oz: 0,
       })
     }else{
@@ -330,8 +355,8 @@
   })
   
   renderer.z = 45
-  SpawnPiece(Rn() * 7 | 0)
-  //SpawnPiece(2)
+  //SpawnPiece(Rn() * 7 | 0)
+  SpawnPiece(5)
   
   window.Draw = () => {
     var t = renderer.t
