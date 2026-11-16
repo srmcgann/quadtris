@@ -217,13 +217,13 @@
   var geoOptions = {
     shapeType: 'obj',
     url: 'https://srmcgann.github.io/quadtris/tetraminoes.obj?2',
-    map: 'https://srmcgann.github.io/quadtris/tetraminoes.png',
+    map: 'https://srmcgann.github.io/quadtris/tetraminoes.png?2',
     name: 'pieces',
     //disableDepthTest: true,
     scaleX: -.95,
     scaleY: -.95,
     scaleZ: .25,
-    objZ: -.25,
+    objZ: .25,
     colorMix: 0,
   }
   await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
@@ -292,6 +292,9 @@
     url: 'https://srmcgann.github.io/quadtris/board.obj',
     map: 'https://srmcgann.github.io/quadtris/board_grey.png',
     name: 'board',
+    cullFace: 'back',
+    //disableDepthTest: true,
+    //alpha: .5,
     scaleX: -1.005,
     scaleY: 1.005,
     scaleZ: 1,
@@ -355,8 +358,8 @@
   })
   
   renderer.z = 45
-  //SpawnPiece(Rn() * 7 | 0)
-  SpawnPiece(5)
+  SpawnPiece(Rn() * 7 | 0)
+  //SpawnPiece(5)
   
   window.Draw = () => {
     var t = renderer.t
