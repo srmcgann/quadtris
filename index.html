@@ -109,24 +109,29 @@
           break
           case 37: // left arrow
             if(keyTimers[key] < t){
-              var piecesShape = shapes.filter(v=>v.name=='pieces')[0]
-              var pIdx = pieces.length -1
-              for(var i = 0; i < pieces[pIdx].subShape.vertIDs.length; i++){
-                var idx = pieces[pIdx].subShape.vertIDs[i]%piecesShape.stride
-                var x1 = piecesShape.vertices[idx + 0] + pieces[pIdx].subShape.x
-                var y1 = piecesShape.vertices[idx + 1] + pieces[pIdx].subShape.y
-                var x2 = pieces[pIdx].x
-                var y2 = pieces[pIdx].y
-                
-                p = Math.atan2(x1-x2, y1-y2) + Math.PI/2
-                d = Math.hypot(x1-x2, y1-y2)
-                x = -x2 + S(p) * d
-                y = -y2 + C(p) * d
-                
-                pieces[pIdx].subShape.vertices[idx + 0] = x
-                pieces[pIdx].subShape.vertices[idx + 1] = y
+              console.log(pieces[pieces.length-1].subShape.id)
+              if(pieces[pieces.length-1].subShape.id != 2){
+                var stride = shapes.filter(v=>v.name=='pieces')[0].stride
+                var piecesShape = pieces[pieces.length-1].subShape
+                //shapes.filter(v=>v.name=='pieces')[0]
+                var pIdx = pieces.length -1
+                for(var i = 0; i < pieces[pIdx].subShape.vertIDs.length; i++){
+                  var idx = pieces[pIdx].subShape.vertIDs[i]%stride
+                  var x1 = piecesShape.baseVertices[idx + 0] + pieces[pIdx].subShape.x
+                  var y1 = piecesShape.baseVertices[idx + 1] + pieces[pIdx].subShape.y
+                  var x2 = 0
+                  var y2 = 0
+                  
+                  p = Math.atan2(x1-x2, y1-y2) + Math.PI/2
+                  d = Math.hypot(x1-x2, y1-y2)
+                  x = -x2 + S(p) * d
+                  y = -y2 + C(p) * d
+                  
+                  piecesShape.baseVertices[idx + 0] = x - pieces[pIdx].x
+                  piecesShape.baseVertices[idx + 1] = y - pieces[pIdx].y
+                }
+                keyTimers[key] = t + keyTimerInterval / 2
               }
-              keyTimers[key] = t + keyTimerInterval
             }
           break
           case 38: // up arrow
@@ -184,7 +189,7 @@
   var baseShapeVerts
   var geoOptions = {
     shapeType: 'obj',
-    url: 'https://srmcgann.github.io/quadtris/tetraminoes.obj',
+    url: 'https://srmcgann.github.io/quadtris/tetraminoes.obj?2',
     map: 'https://srmcgann.github.io/quadtris/tetraminoes.png',
     name: 'pieces',
     //disableDepthTest: true,
@@ -243,7 +248,7 @@
       
       for(var i = 0 ; i < res.vstate.length; i += 3){
         res.vertices[i+0] += 1e5
-        res.vertices[i+1] += 6.5
+        res.vertices[i+1] += 0
         res.vertices[i+2] += 0
       }
       shapes.push(res)
@@ -294,21 +299,20 @@
     })
     if(subShape.length){
       subShape[0].vertices = structuredClone(baseShapeVerts)
+      subShape[0].baseVertices = structuredClone(baseShapeVerts)
       subShape[0].x = 0
       pieces.push({
         subShape: subShape[0],
         x: -1e5+1,
-        y: -6.5,
+        y: 0,
         z: subShape[0].z -.2,
-        cx: 0,
-        cy: 0,
-        cz: 0,
+        ox: 1,
+        oy: -21.4,
+        oz: 0,
       })
     }else{
       console.log('no piece generated!')
     }
-    console.log('pieceBank', pieceBank)
-    console.log('pieces', pieces)
   }
   
   if(0) Coordinates.LoadFPSControls(renderer, {
@@ -320,7 +324,7 @@
   
   renderer.z = 45
   //SpawnPiece(Rn() * 7 | 0)
-  SpawnPiece(1)
+  SpawnPiece(2)
   
   window.Draw = () => {
     var t = renderer.t
@@ -345,17 +349,17 @@
             piece.subShape.x = piece.x
             piece.subShape.y = piece.y
             piece.subShape.z = piece.z
-          })
-          if(1) for(var j = 0; j < iPc; j++){
-            for(var i = 0; i < 7; i++){
-              pieceBank[i+j*7].vertIDs.map(idx => {
-                var idx2 = idx % shape.stride
-                shape.vertices[idx + 0] = pieceBank[i+j*7].vertices[idx2 + 0] + pieceBank[i+j*7].x
-                shape.vertices[idx + 1] = pieceBank[i+j*7].vertices[idx2 + 1] + pieceBank[i+j*7].y
-                shape.vertices[idx + 2] = pieceBank[i+j*7].vertices[idx2 + 2] + pieceBank[i+j*7].z
-              })
+            for(var j = 0; j < iPc; j++){
+              for(var i = 0; i < 7; i++){
+                pieceBank[i+j*7].vertIDs.map(idx => {
+                  var idx2 = idx % shape.stride
+                  shape.vertices[idx + 0] = piece.subShape.baseVertices[idx2 + 0] + pieceBank[i+j*7].x + piece.ox
+                  shape.vertices[idx + 1] = piece.subShape.baseVertices[idx2 + 1] + pieceBank[i+j*7].y + piece.oy
+                  shape.vertices[idx + 2] = piece.subShape.baseVertices[idx2 + 2] + pieceBank[i+j*7].z + piece.oz
+                })
+              }
             }
-          }
+          })
          
           renderer.Draw(shape)
         break
