@@ -292,8 +292,8 @@
     url: 'https://srmcgann.github.io/quadtris/board.obj',
     map: 'https://srmcgann.github.io/quadtris/board_grey.png',
     name: 'board',
-    scaleX: -1.006,
-    scaleY: 1.006,
+    scaleX: -1.005,
+    scaleY: 1.005,
     scaleZ: 1,
     y: 9.33,
     color: 0x000000,
@@ -302,7 +302,7 @@
   if(1) await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
     for(var i = 0; i < geometry.vertices.length; i+=3){
       geometry.vertices[i+0] += 0
-      geometry.vertices[i+1] += .05
+      geometry.vertices[i+1] += 0
       geometry.vertices[i+2] += 0
     }
     shapes.push(geometry)
