@@ -85,16 +85,7 @@
   var boardTheta = 0
   
   var iPc = 100
-  var pieceBank = Array(7*iPc).fill().map((v, i) => {
-    return{
-      id: i%7,
-      x: 1e5,
-      y: 0,
-      z: 0,
-      vertIDs: []
-    }
-  })
-  
+
   const DoKeys = () =>{
     var t = renderer.frameCount / 60
     keys.map((state, key) => {
@@ -117,6 +108,24 @@
             }
           break
           case 37: // left arrow
+            var piecesShape = shapes.filter(v=>v.name=='pieces')[0]
+            var pIdx = pieces.length -1
+            for(var i = 0; i < pieces[pIdx].subShape.vertIDs.length; i++){
+              var idx = pieces[pIdx].subShape.vertIDs[i]%piecesShape.stride
+              var x1 = piecesShape.vertices[idx + 0] + pieces[pIdx].subShape.x
+              var y1 = piecesShape.vertices[idx + 1] + pieces[pIdx].subShape.y
+              var x2 = pieces[pIdx].x
+              var y2 = pieces[pIdx].y
+              
+              p = Math.atan2(x1-x2, y1-y2) + Math.PI/2
+              d = Math.hypot(x1-x2, y1-y2)
+              x = -x2 + S(p) * d
+              y = -y2 + C(p) * d
+              
+              pieces[pIdx].subShape.vertices[idx + 0] = x
+              pieces[pIdx].subShape.vertices[idx + 1] = y
+              console.log(x,y)
+            }
           break
           case 38: // up arrow
           break
@@ -159,12 +168,24 @@
   
   var pointArray = Array(iPc).fill().map((v,i) => [0,0,0])
   
+  var pieceBank = Array(7*iPc).fill().map((v, i) => {
+    return{
+      id: i%7,
+      x: 1e5,
+      y: 0,
+      z: 0,
+      vertIDs: [],
+      vertices: [],
+    }
+  })
+  
   var baseShapeVerts
   var geoOptions = {
     shapeType: 'obj',
     url: 'https://srmcgann.github.io/quadtris/tetraminoes.obj',
     map: 'https://srmcgann.github.io/quadtris/tetraminoes.png',
     name: 'pieces',
+    //disableDepthTest: true,
     scaleX: -1,
     scaleY: 1,
     scaleZ: .25,
@@ -172,7 +193,7 @@
     colorMix: 0,
   }
   await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
-    Coordinates.ShapeFromArray(geometry, pointArray).then(async res =>{
+    await Coordinates.ShapeFromArray(geometry, pointArray).then(async res =>{
       var zSpacing = []
       var sp = .5
       for(var i = 0; i < 7; i ++){
@@ -214,32 +235,35 @@
         pieceBank[i].y = pieceBank[i%7].y
         pieceBank[i].z = pieceBank[i%7].z
         pieceBank[i].vertIDs = structuredClone(pieceBank[i%7].vertIDs).map(v => {
-          return v+res.stride * ((i / 7 | 0)-0)
+          return v + res.stride * ((i / 7 | 0)-0)
         })
       }
       
       for(var i = 0 ; i < res.vstate.length; i += 3){
         res.vertices[i+0] += 1e5
-        res.vertices[i+1] += 6
+        res.vertices[i+1] += 6.5
         res.vertices[i+2] += 0
       }
-      baseShapeVerts = structuredClone(res.vertices)
       shapes.push(res)
+      baseShapeVerts = structuredClone(res.vertices)
+      await shader.ConnectGeometry(res)
     })
   })
+  
+  //pieceBank.map(v=>v.vertices = structuredClone(baseShapeVerts))
   
   
   var geoOptions = {
     shapeType: 'obj',
     url: 'https://srmcgann.github.io/quadtris/board.obj',
-    map: 'https://srmcgann.github.io/quadtris/board.png',
+    map: 'https://srmcgann.github.io/quadtris/board.png?2',
     name: 'board',
     scaleX: -1,
     scaleY: 1,
     scaleZ: 1,
     y: 9.5,
     color: 0x000000,
-    colorMix: .75,
+    colorMix: .5,
   }
   if(1) await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
     shapes.push(geometry)
@@ -259,7 +283,6 @@
   }
   if(1)await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
     shapes.push(geometry)
-    await boardShader.ConnectGeometry(geometry)
   })
  
  
@@ -268,12 +291,16 @@
       return pc.id == id && pc.x == 1e5
     })
     if(subShape.length){
+      subShape[0].vertices = structuredClone(baseShapeVerts)
       subShape[0].x = 0
       pieces.push({
         subShape: subShape[0],
         x: -1e5,
         y: subShape[0].y,
-        z: subShape[0].z-.25,
+        z: subShape[0].z -.2,
+        cx: 0,
+        cy: subShape[0].y,
+        cz: subShape[0].z -.2,
       })
     }else{
       console.log('no piece generated!')
@@ -288,13 +315,13 @@
   })
   
   renderer.z = 45
-  
+  //SpawnPiece(Rn() * 7 | 0)
+  SpawnPiece(6)
   
   window.Draw = () => {
     var t = renderer.t
     
     DoKeys()
-    if(!((t*60|0)%8)) SpawnPiece(Rn() * 7 | 0)
     
     renderer.Clear()
     shapes.forEach(shape => {
@@ -303,12 +330,13 @@
           renderer.Draw(shape)
         break
         case 'pieces':
-          if(!((t*60|0)%2)){
+          /*if(!((t*60|0)%2)){
             pieces.map(piece => {
               // perform checks
               piece.y -= 2
+              piece.cy -= 2
             })
-          }
+          }*/
           pieces.map(piece => {
             piece.subShape.x = piece.x
             piece.subShape.y = piece.y
@@ -317,9 +345,10 @@
           if(1) for(var j = 0; j < iPc; j++){
             for(var i = 0; i < 7; i++){
               pieceBank[i+j*7].vertIDs.map(idx => {
-                shape.vertices[idx + 0] = baseShapeVerts[idx + 0] + pieceBank[i+j*7].x
-                shape.vertices[idx + 1] = baseShapeVerts[idx + 1] + pieceBank[i+j*7].y
-                shape.vertices[idx + 2] = baseShapeVerts[idx + 2] + pieceBank[i+j*7].z
+                var idx2 = idx % shape.stride
+                shape.vertices[idx + 0] = pieceBank[i+j*7].vertices[idx2 + 0] + pieceBank[i+j*7].x
+                shape.vertices[idx + 1] = pieceBank[i+j*7].vertices[idx2 + 1] + pieceBank[i+j*7].y
+                shape.vertices[idx + 2] = pieceBank[i+j*7].vertices[idx2 + 2] + pieceBank[i+j*7].z
               })
             }
           }
