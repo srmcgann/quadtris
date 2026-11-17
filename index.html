@@ -77,15 +77,14 @@
   ]
   var backgroundShader = await Coordinates.BasicShader(renderer, shaderOptions)
   
-  const Test = dir => {
-    var pc = centers[centers.length-1]
+  const GetPieceCoords = pc => {
     var a = []
     var x, y, z
     pc.subShape.vertIDs.map((v,i) => {
+      var idx = v%252
       a.push(
-        pc.subShape.baseVertices[v+0] + pc.x + pc.ox,
-        pc.subShape.baseVertices[v+1] + pc.y + pc.oy,
-        //pc.subShape.baseVertices[v+2] + pc.z,
+        pc.subShape.baseVertices[idx+0] + pc.x + pc.ox,
+        pc.subShape.baseVertices[idx+1] + pc.y + pc.oy,
       )
     })
     var b = []
@@ -93,29 +92,59 @@
       x = 0
       y = 0
       for(var j = 0; j < 3; j++){
-        x += a[i*6+j*2] + .5
+        x += a[i*6+j*2]
         y += a[i*6+j*2+1]
       }
       x /= 3
       y /= 3
       b.push([x,y])
     }
-    console.log(b, b.map(v=>{
+    b = b.map(v=>{
       return v.map(q=>{
-        return Math.round(q)/2
+        return Math.round(Math.round((q-.01) / 1)/2+.5)
       })
-    }))
+    })
+    return b
+  }
+  
+  const Test = dir => {
+    var clear = true
+    var pc = centers[centers.length-1]
+    var b = GetPieceCoords(pc)
+
     switch(dir){
       case 'left':
-        console.log(pc)
+        for(var i = 0; i < centers.length-1; i ++){
+          var chk = GetPieceCoords(centers[i])
+          b.map(v1 => {
+            chk.map(v2=>{
+              if(v1[0] - 1 == v2[0] && v1[1] == v2[1]) clear = false
+            })
+          })
+        }
+        b.map(v=>{
+          if(v[0] < -3) clear = false
+        })
       break
       case 'rotate':
       break
       case 'right':
+        for(var i = 0; i < centers.length-1; i ++){
+          var chk = GetPieceCoords(centers[i])
+          b.map(v1 => {
+            chk.map(v2=>{
+              if(v1[0] + 1 == v2[0] && v1[1] == v2[1]) clear = false
+            })
+          })
+        }
+        b.map(v=>{
+          if(v[0] > 4) clear = false
+        })
       break
       case 'down':
       break
     }
+    return clear
   }
 
   var keyTimerInterval = .5
@@ -183,7 +212,7 @@
                 var pIdx = pieces.length -1
                 for(var i = 0; i < pieces[pIdx].subShape.vertIDs.length; i++){
                   var idx = pieces[pIdx].subShape.vertIDs[i]%stride
-                  var x1 = piecesShape.baseVertices[idx + 0] + pieces[pIdx].subShape.x
+                  var x1 = piecesShape.baseVertices[idx + 0] + pieces[pIdx].subShape.x 
                   var y1 = piecesShape.baseVertices[idx + 1] + pieces[pIdx].subShape.y
                   p = Math.atan2(x1, y1) - Math.PI/2
                   d = Math.hypot(x1, y1)
@@ -201,8 +230,8 @@
                 var pIdx = centers.length -1
                 for(var i = 0; i < centers[pIdx].subShape.vertIDs.length; i++){
                   var idx = centers[pIdx].subShape.vertIDs[i]%stride
-                  var x1 = centersShape.baseVertices[idx + 0] + centers[pIdx].subShape.x
-                  var y1 = centersShape.baseVertices[idx + 1] + centers[pIdx].subShape.y
+                  var x1 = centersShape.baseVertices[idx + 0] + centers[pIdx].x
+                  var y1 = centersShape.baseVertices[idx + 1] + centers[pIdx].y
                   p = Math.atan2(x1, y1) - Math.PI/2
                   d = Math.hypot(x1, y1)
                   x = S(p) * d
@@ -215,7 +244,7 @@
             }
           break
           case 39: // right arrow
-            if(keyTimers[key] < t){
+            if(keyTimers[key] < t && Test('right')){
               pieces[pieces.length-1].ox += 2
               centers[centers.length-1].ox += 2
               keyTimers[key] = t + keyTimerInterval / 2
