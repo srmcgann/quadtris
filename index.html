@@ -35,6 +35,7 @@
   var h   = c.height
   
   var x, y, z, p, q, d
+  var showDropLocation = true
   
   Coordinates.AnimationLoop(renderer, 'Draw')
 
@@ -445,6 +446,7 @@
 
   var shapes = []
   var pieces = []
+  var dropPiece
   var centers = []
   var box    = []
 
@@ -489,8 +491,8 @@
   var baseShapeVerts
   var geoOptions = {
     shapeType: 'obj',
-    url: 'https://srmcgann.github.io/quadtris/tetraminoes.obj?2',
-    map: 'https://srmcgann.github.io/quadtris/tetraminoes.png?2',
+    url: 'https://srmcgann.github.io/quadtris/tetraminoes.obj',
+    map: 'https://srmcgann.github.io/quadtris/tetraminoes2.png',
     name: 'pieces',
     //disableDepthTest: true,
     scaleX: -.95,
@@ -767,6 +769,33 @@
           })
          
           renderer.Draw(shape)
+          
+          if(showDropLocation){
+            var pc = centers[centers.length - 1]
+            var tyc = pc.oy
+            while(Test('down')) pc.oy -= 2
+
+            var coords = GetPieceCoords(pc)
+            coords.map(v=>{
+              x = v[0] * 2 - .85
+              y = v[1] * 2 - .85
+              z = 0
+              var ar = Coordinates.GetShaderCoord(x,y,z,{
+                roll: 0,
+                pitch: 0,
+                yaw: 0,
+                x: 0,
+                y: 0,
+                z: 0,
+              }, renderer)
+              
+              centers[centers.length-1].oy = tyc
+              var s = 20
+              ctx.fillStyle = '#8884'
+              ctx.fillRect(ar[0]-s/2,ar[1]-s/2,s,s)
+            })
+          }
+          
         break
         case 'centers':
           if(Math.abs(boardTheta) > .001){
