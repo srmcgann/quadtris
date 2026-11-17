@@ -79,41 +79,96 @@
   
   const GetPieceCoords = pc => {
     var a = []
-    var x, y, z
-    pc.subShape.vertIDs.map((v,i) => {
-      var idx = v%252
-      a.push(
-        pc.subShape.baseVertices[idx+0] + pc.x + pc.ox,
-        pc.subShape.baseVertices[idx+1] + pc.y + pc.oy,
-      )
-    })
     var b = []
-    for(var i = 0; i < 4; i ++){
-      x = 0
-      y = 0
-      for(var j = 0; j < 3; j++){
-        x += a[i*6+j*2]
-        y += a[i*6+j*2+1]
-      }
-      x /= 3
-      y /= 3
-      b.push([x,y])
+    var x, y, z
+
+    while(pc.worldTheta < 0){
+      pc.worldTheta += Math.PI*2
     }
-    b = b.map(v=>{
-      return v.map(q=>{
-        return Math.round(Math.round((q-.01) / 1)/2+.5)
+    while(pc.worldTheta > Math.PI*2){
+      pc.worldTheta -= Math.PI*2
+    }
+    
+    if(C(pc.worldTheta) > 0){
+      pc.subShape.vertIDs.map((v,i) => {
+        var idx = v%252
+        a.push(
+          pc.subShape.baseVertices[idx+0] + pc.x + pc.ox,
+          pc.subShape.baseVertices[idx+1] + pc.y + pc.oy,
+        )
       })
-    })
+      for(var i = 0; i < 4; i ++){
+        x = 0
+        y = 0
+        for(var j = 0; j < 3; j++){
+          x += a[i*6+j*2]
+          y += a[i*6+j*2+1]
+        }
+        x /= 3
+        y /= 3
+        b.push([x,y])
+      }
+      b = b.map(v=>{
+        return v.map(q=>{
+          return Math.round(Math.round((q-.01) / 1)/2+.5)
+        })
+      })
+    }else{
+      b = [
+        [1e5, 1e5],
+        [1e5, 1e5],
+        [1e5, 1e5],
+        [1e5, 1e5],
+      ]
+    }
     return b
   }
   
+  const RotatePiece = theta => {
+    if(pieces[pieces.length-1].subShape.id != 2){
+      var stride = shapes.filter(v=>v.name=='pieces')[0].stride
+      var piecesShape = pieces[pieces.length-1].subShape
+      var pIdx = pieces.length -1
+      for(var i = 0; i < pieces[pIdx].subShape.vertIDs.length; i++){
+        var idx = pieces[pIdx].subShape.vertIDs[i]%stride
+        var x1 = piecesShape.baseVertices[idx + 0] + pieces[pIdx].subShape.x 
+        var y1 = piecesShape.baseVertices[idx + 1] + pieces[pIdx].subShape.y
+        p = Math.atan2(x1, y1) + theta
+        d = Math.hypot(x1, y1)
+        x = S(p) * d
+        y = C(p) * d
+        
+        piecesShape.baseVertices[idx + 0] = x - pieces[pIdx].x
+        piecesShape.baseVertices[idx + 1] = y - pieces[pIdx].y
+      }
+      
+      var stride = shapes.filter(v=>v.name=='centers')[0].stride
+      var centersShape = centers[centers.length-1].subShape
+      var pIdx = centers.length -1
+      for(var i = 0; i < centers[pIdx].subShape.vertIDs.length; i++){
+        var idx = centers[pIdx].subShape.vertIDs[i]%stride
+        var x1 = centersShape.baseVertices[idx + 0] + centers[pIdx].x
+        var y1 = centersShape.baseVertices[idx + 1] + centers[pIdx].y
+        p = Math.atan2(x1, y1) + theta
+        d = Math.hypot(x1, y1)
+        x = S(p) * d
+        y = C(p) * d
+        
+        centersShape.baseVertices[idx + 0] = x - centers[pIdx].x
+        centersShape.baseVertices[idx + 1] = y - centers[pIdx].y
+      }
+    }
+  }
+  
+  
+  
   const Test = dir => {
     var clear = true
-    var pc = centers[centers.length-1]
-    var b = GetPieceCoords(pc)
 
     switch(dir){
       case 'left':
+        var pc = centers[centers.length-1]
+        var b = GetPieceCoords(pc)
         for(var i = 0; i < centers.length-1; i ++){
           var chk = GetPieceCoords(centers[i])
           b.map(v1 => {
@@ -127,8 +182,129 @@
         })
       break
       case 'rotate':
+        
+        RotatePiece(-Math.PI/2)
+        var pc = centers[centers.length-1]
+        var b = GetPieceCoords(pc)
+        
+        // check left
+        b.map(v=>{
+          if(v[0] < -4) clear = false
+        })
+        if(!clear){
+          clear = true
+          pieces[pieces.length-1].ox += 2
+          centers[centers.length-1].ox += 2
+          pc = centers[centers.length-1]
+          b = GetPieceCoords(pc)
+          b.map(v=>{
+            if(v[0] < -4) clear = false
+          })
+          if(!clear){
+            clear = true
+            pieces[pieces.length-1].ox += 2
+            centers[centers.length-1].ox += 2
+            pc = centers[centers.length-1]
+            b = GetPieceCoords(pc)
+            for(var i = 0; i < centers.length-1; i ++){
+              var chk = GetPieceCoords(centers[i])
+              b.map(v1 => {
+                chk.map(v2=>{
+                  if(v1[0] + 1 == v2[0] && v1[1] == v2[1]) clear = false
+                })
+              })
+            }
+            if(!clear){
+              pieces[pieces.length-1].ox -= 2
+              centers[centers.length-1].ox -= 2
+            }
+          }
+          for(var i = 0; i < centers.length-1; i ++){
+            var chk = GetPieceCoords(centers[i])
+            b.map(v1 => {
+              chk.map(v2=>{
+                if(v1[0] + 1 == v2[0] && v1[1] == v2[1]) clear = false
+              })
+            })
+          }
+          if(!clear){
+            pieces[pieces.length-1].ox -= 2
+            centers[centers.length-1].ox -= 2
+          }
+        }
+        for(var i = 0; i < centers.length-1; i ++){
+          var chk = GetPieceCoords(centers[i])
+          b.map(v1 => {
+            chk.map(v2=>{
+              if(v1[0] == v2[0] && v1[1] == v2[1]) clear = false
+            })
+          })
+        }
+        
+        // check right
+        b.map(v=>{
+          if(v[0] > 5) clear = false
+        })
+        if(!clear){
+          clear = true
+          pieces[pieces.length-1].ox -= 2
+          centers[centers.length-1].ox -= 2
+          pc = centers[centers.length-1]
+          b = GetPieceCoords(pc)
+          b.map(v=>{
+            if(v[0] > 5) clear = false
+          })
+          if(!clear){
+            clear = true
+            pieces[pieces.length-1].ox -= 2
+            centers[centers.length-1].ox -= 2
+            pc = centers[centers.length-1]
+            b = GetPieceCoords(pc)
+            for(var i = 0; i < centers.length-1; i ++){
+              var chk = GetPieceCoords(centers[i])
+              b.map(v1 => {
+                chk.map(v2=>{
+                  if(v1[0] - 1 == v2[0] && v1[1] == v2[1]) clear = false
+                })
+              })
+            }
+            if(!clear){
+              pieces[pieces.length-1].ox += 2
+              centers[centers.length-1].ox += 2
+            }
+          }
+          for(var i = 0; i < centers.length-1; i ++){
+            var chk = GetPieceCoords(centers[i])
+            b.map(v1 => {
+              chk.map(v2=>{
+                if(v1[0] - 1 == v2[0] && v1[1] == v2[1]) clear = false
+              })
+            })
+          }
+          if(!clear){
+            pieces[pieces.length-1].ox += 2
+            centers[centers.length-1].ox += 2
+          }
+        }
+        for(var i = 0; i < centers.length-1; i ++){
+          var chk = GetPieceCoords(centers[i])
+          b.map(v1 => {
+            chk.map(v2=>{
+              if(v1[0] == v2[0] && v1[1] == v2[1]) clear = false
+            })
+          })
+        }
+        
+        // check bottom
+        b.map(v=>{
+          if(v[1] < -22) clear = false
+        })
+        
+        if(!clear) RotatePiece(Math.PI/2)
       break
       case 'right':
+        var pc = centers[centers.length-1]
+        var b = GetPieceCoords(pc)
         for(var i = 0; i < centers.length-1; i ++){
           var chk = GetPieceCoords(centers[i])
           b.map(v1 => {
@@ -142,6 +318,19 @@
         })
       break
       case 'down':
+        var pc = centers[centers.length-1]
+        var b = GetPieceCoords(pc)
+        for(var i = 0; i < centers.length-1; i ++){
+          var chk = GetPieceCoords(centers[i])
+          b.map(v1 => {
+            chk.map(v2=>{
+              if(v1[0] == v2[0] && v1[1] - 1 == v2[1]) clear = false
+            })
+          })
+        }
+        b.map(v=>{
+          if(v[1] < -22) clear = false
+        })
       break
     }
     return clear
@@ -155,6 +344,7 @@
   var boardTheta = 0
   
   var iPc = 50
+  var level = 1
 
   const SetTexture = (shapeName, url) => {
     var shape = shapes.filter(v=>v.name == shapeName)
@@ -187,6 +377,7 @@
               keyTimers[key] = t + keyTimerInterval
               keys[key] = false
               state = false
+              
             }
           break
           case 68: // d
@@ -197,6 +388,16 @@
               state = false
             }
           break
+          case 32: // space
+            if(keyTimers[key] < t){
+              while(Test('down')){
+                pieces[pieces.length-1].oy -= 2
+                centers[centers.length-1].oy -= 2
+              }
+              SpawnPiece(Rn() * 7 | 0)
+              keyTimers[key] = t + keyTimerInterval * 2
+            }
+          break
           case 37: // left arrow
             if(keyTimers[key] < t && Test('left')){
               pieces[pieces.length-1].ox -= 2
@@ -205,42 +406,8 @@
             }
           break
           case 38: // up arrow
-            if(keyTimers[key] < t){
-              if(pieces[pieces.length-1].subShape.id != 2){
-                var stride = shapes.filter(v=>v.name=='pieces')[0].stride
-                var piecesShape = pieces[pieces.length-1].subShape
-                var pIdx = pieces.length -1
-                for(var i = 0; i < pieces[pIdx].subShape.vertIDs.length; i++){
-                  var idx = pieces[pIdx].subShape.vertIDs[i]%stride
-                  var x1 = piecesShape.baseVertices[idx + 0] + pieces[pIdx].subShape.x 
-                  var y1 = piecesShape.baseVertices[idx + 1] + pieces[pIdx].subShape.y
-                  p = Math.atan2(x1, y1) - Math.PI/2
-                  d = Math.hypot(x1, y1)
-                  x = S(p) * d
-                  y = C(p) * d
-                  
-                  piecesShape.baseVertices[idx + 0] = x - pieces[pIdx].x
-                  piecesShape.baseVertices[idx + 1] = y - pieces[pIdx].y
-                }
-                keyTimers[key] = t + keyTimerInterval / 2
-              }
-              if(centers[centers.length-1].subShape.id != 2){
-                var stride = shapes.filter(v=>v.name=='centers')[0].stride
-                var centersShape = centers[centers.length-1].subShape
-                var pIdx = centers.length -1
-                for(var i = 0; i < centers[pIdx].subShape.vertIDs.length; i++){
-                  var idx = centers[pIdx].subShape.vertIDs[i]%stride
-                  var x1 = centersShape.baseVertices[idx + 0] + centers[pIdx].x
-                  var y1 = centersShape.baseVertices[idx + 1] + centers[pIdx].y
-                  p = Math.atan2(x1, y1) - Math.PI/2
-                  d = Math.hypot(x1, y1)
-                  x = S(p) * d
-                  y = C(p) * d
-                  
-                  centersShape.baseVertices[idx + 0] = x - centers[pIdx].x
-                  centersShape.baseVertices[idx + 1] = y - centers[pIdx].y
-                }
-              }
+            if(keyTimers[key] < t && Test('rotate')){
+              keyTimers[key] = t + keyTimerInterval / 2
             }
           break
           case 39: // right arrow
@@ -252,9 +419,13 @@
           break
           case 40: // down arrow
             if(keyTimers[key] < t){
-              pieces[pieces.length-1].oy -= 2
-              centers[centers.length-1].oy -= 2
-              keyTimers[key] = t + keyTimerInterval / 8
+              if(Test('down')){
+                pieces[pieces.length-1].oy -= 2
+                centers[centers.length-1].oy -= 2
+                keyTimers[key] = t + keyTimerInterval / 8
+              }else{
+                SpawnPiece(Rn() * 7 | 0)
+              }
             }
           break
         }
@@ -513,6 +684,7 @@
         ox: -1 + x,
         oy: 6.25 + y,
         oz: 0 + z,
+        worldTheta: 0,
       })
     }
   
@@ -532,6 +704,7 @@
         ox: -1 + x,
         oy: 6.25 + y,
         oz: 0 + z,
+        worldTheta: 0,
       })
     }else{
       console.log('no piece generated!')
@@ -546,15 +719,19 @@
   })
   
   renderer.z = 45
-  SpawnPiece(Rn() * 7 | 0, -2*3, -52)
-  SpawnPiece(Rn() * 7 | 0, 2*4, -52)
   SpawnPiece(Rn() * 7 | 0)
-  //SpawnPiece(Rn() * 7 | 0)
-  //SpawnPiece(Rn() * 7 | 0)
-  //SpawnPiece(5)
   
   window.Draw = () => {
-    var t = renderer.t
+    var t = renderer.frameCount / 60
+    
+    if(!((t*60|0)%(240/(1+level/4)|0))){
+      if(Test('down')){
+        pieces[pieces.length-1].oy -= 2
+        centers[centers.length-1].oy -= 2
+      }else{
+        SpawnPiece(Rn() * 7 | 0)
+      }
+    }
     
     DoKeys()
     
@@ -569,10 +746,22 @@
             piece.subShape.x = piece.x
             piece.subShape.y = piece.y
             piece.subShape.z = piece.z
+            var ox = piece.ox
+            var oy = piece.oy
+            p = Math.atan2(ox, oy) + piece.worldTheta
+            d = Math.hypot(ox, oy)
+            ox = S(p) * d
+            oy = C(p) * d
             piece.subShape.vertIDs.map(idx => {
               var idx2 = idx % shape.stride
-              shape.vertices[idx + 0] = piece.subShape.baseVertices[idx2 + 0] + piece.subShape.x + piece.ox
-              shape.vertices[idx + 1] = piece.subShape.baseVertices[idx2 + 1] + piece.subShape.y + piece.oy
+              x = piece.subShape.baseVertices[idx2 + 0] + piece.subShape.x
+              y = piece.subShape.baseVertices[idx2 + 1] + piece.subShape.y - 8
+              p = Math.atan2(x, y) + piece.worldTheta
+              d = Math.hypot(x, y)
+              x = S(p) * d
+              y = C(p) * d
+              shape.vertices[idx + 0] = x + ox
+              shape.vertices[idx + 1] = y + oy + 8
               shape.vertices[idx + 2] = piece.subShape.baseVertices[idx2 + 2] + piece.subShape.z + piece.oz
             })
           })
@@ -580,12 +769,25 @@
           renderer.Draw(shape)
         break
         case 'centers':
+          if(Math.abs(boardTheta) > .001){
+            var theta = boardThetaInterval * (boardTheta > 0 ? -1: 1)
+            centers.map((v, i) => {
+              if(i < centers.length - 1){
+                v.worldTheta += theta / 6
+              }
+            })
+          }
         break
         case 'board':
           if(Math.abs(boardTheta) > .001){
             var theta = boardThetaInterval * (boardTheta > 0 ? -1: 1)
             shape.roll += theta / 6
             boardTheta += theta / 6
+            pieces.map((v, i) => {
+              if(i < pieces.length - 1){
+                v.worldTheta += theta / 6
+              }
+            })
           }else{
             boardTheta = 0
           }
