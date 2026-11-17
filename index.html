@@ -19,7 +19,7 @@
 
   var rendererOptions = {
     ambientLight: .5, margin: 0,
-    fov: 800, width: 1920, height: 1080,
+    fov: 1500, width: 1920, height: 1080,
   }
   var renderer = await Coordinates.Renderer(rendererOptions)
   
@@ -39,7 +39,7 @@
   Coordinates.AnimationLoop(renderer, 'Draw')
 
   var shaderOptions = [
-    {lighting: {type: 'ambientLight', value: .5}},
+    {lighting: {type: 'ambientLight', value: .3}},
     { uniform: {
       type: 'phong',
       value: .25
@@ -54,7 +54,7 @@
   var shader = await Coordinates.BasicShader(renderer, shaderOptions)
 
   var shaderOptions = [
-    {lighting: {type: 'ambientLight', value: 1.33}},
+    {lighting: {type: 'ambientLight', value: 2}},
     { uniform: {
       type: 'phong',
       value: 0
@@ -76,6 +76,47 @@
     } }
   ]
   var backgroundShader = await Coordinates.BasicShader(renderer, shaderOptions)
+  
+  const Test = dir => {
+    var pc = centers[centers.length-1]
+    var a = []
+    var x, y, z
+    pc.subShape.vertIDs.map((v,i) => {
+      a.push(
+        pc.subShape.baseVertices[v+0] + pc.x + pc.ox,
+        pc.subShape.baseVertices[v+1] + pc.y + pc.oy,
+        //pc.subShape.baseVertices[v+2] + pc.z,
+      )
+    })
+    var b = []
+    for(var i = 0; i < 4; i ++){
+      x = 0
+      y = 0
+      for(var j = 0; j < 3; j++){
+        x += a[i*6+j*2] + .5
+        y += a[i*6+j*2+1]
+      }
+      x /= 3
+      y /= 3
+      b.push([x,y])
+    }
+    console.log(b, b.map(v=>{
+      return v.map(q=>{
+        return Math.round(q)/2
+      })
+    }))
+    switch(dir){
+      case 'left':
+        console.log(pc)
+      break
+      case 'rotate':
+      break
+      case 'right':
+      break
+      case 'down':
+      break
+    }
+  }
 
   var keyTimerInterval = .5
   var keys = Array(256).fill(false)
@@ -84,7 +125,7 @@
   var boardThetaInterval = Math.PI/3
   var boardTheta = 0
   
-  var iPc = 100
+  var iPc = 50
 
   const SetTexture = (shapeName, url) => {
     var shape = shapes.filter(v=>v.name == shapeName)
@@ -128,8 +169,9 @@
             }
           break
           case 37: // left arrow
-            if(keyTimers[key] < t){
+            if(keyTimers[key] < t && Test('left')){
               pieces[pieces.length-1].ox -= 2
+              centers[centers.length-1].ox -= 2
               keyTimers[key] = t + keyTimerInterval / 2
             }
           break
@@ -153,17 +195,36 @@
                 }
                 keyTimers[key] = t + keyTimerInterval / 2
               }
+              if(centers[centers.length-1].subShape.id != 2){
+                var stride = shapes.filter(v=>v.name=='centers')[0].stride
+                var centersShape = centers[centers.length-1].subShape
+                var pIdx = centers.length -1
+                for(var i = 0; i < centers[pIdx].subShape.vertIDs.length; i++){
+                  var idx = centers[pIdx].subShape.vertIDs[i]%stride
+                  var x1 = centersShape.baseVertices[idx + 0] + centers[pIdx].subShape.x
+                  var y1 = centersShape.baseVertices[idx + 1] + centers[pIdx].subShape.y
+                  p = Math.atan2(x1, y1) - Math.PI/2
+                  d = Math.hypot(x1, y1)
+                  x = S(p) * d
+                  y = C(p) * d
+                  
+                  centersShape.baseVertices[idx + 0] = x - centers[pIdx].x
+                  centersShape.baseVertices[idx + 1] = y - centers[pIdx].y
+                }
+              }
             }
           break
           case 39: // right arrow
             if(keyTimers[key] < t){
               pieces[pieces.length-1].ox += 2
+              centers[centers.length-1].ox += 2
               keyTimers[key] = t + keyTimerInterval / 2
             }
           break
           case 40: // down arrow
             if(keyTimers[key] < t){
               pieces[pieces.length-1].oy -= 2
+              centers[centers.length-1].oy -= 2
               keyTimers[key] = t + keyTimerInterval / 8
             }
           break
@@ -184,6 +245,7 @@
 
   var shapes = []
   var pieces = []
+  var centers = []
   var box    = []
 
   var geoOptions = {
@@ -213,6 +275,17 @@
     }
   })
   
+  var centersBank = Array(7*iPc).fill().map((v, i) => {
+    return{
+      id: i%7,
+      x: 1e5,
+      y: 0,
+      z: 0,
+      vertIDs: [],
+      vertices: [],
+    }
+  })
+  
   var baseShapeVerts
   var geoOptions = {
     shapeType: 'obj',
@@ -223,7 +296,7 @@
     scaleX: -.95,
     scaleY: -.95,
     scaleZ: .25,
-    objZ: .25,
+    objZ: -.25,
     colorMix: 0,
   }
   await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
@@ -276,7 +349,7 @@
       for(var i = 0 ; i < res.vstate.length; i += 3){
         res.vertices[i+0] += 1e5
         res.vertices[i+1] += 0
-        res.vertices[i+2] += 0
+        res.vertices[i+2] -= 0
       }
       shapes.push(res)
       baseShapeVerts = structuredClone(res.vertices.slice(0, res.stride))
@@ -284,23 +357,88 @@
     })
   })
   
-  //pieceBank.map(v=>v.vertices = structuredClone(baseShapeVerts))
+  var baseCenterVerts
+  var geoOptions = {
+    shapeType: 'obj',
+    url: 'https://srmcgann.github.io/quadtris/centers.obj',
+    name: 'centers',
+    scaleX: -.95,
+    scaleY: -.95,
+    scaleZ: .25,
+    objZ: -.25,
+  }
+  await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+    await Coordinates.ShapeFromArray(geometry, pointArray).then(async res =>{
+      var zSpacing = []
+      var sp = .5
+      for(var i = 0; i < 7; i ++){
+        zSpacing.push((i-3.5)*sp)
+      }
+      
+      for(var i = 0; i < res.stride; i += 9){
+        var pcIdx = i/3/iPc/7
+        var tgt = -1
+        var x1 = res.vertices[i+0]
+        var y1 = res.vertices[i+1]
+        var z1 = res.vertices[i+2]
+        var x2 = res.vertices[i+3]
+        var y2 = res.vertices[i+4]
+        var z2 = res.vertices[i+5]
+        var x3 = res.vertices[i+6]
+        var y3 = res.vertices[i+7]
+        var z3 = res.vertices[i+8]
+        var ax = (x1+x2+x3) / 3
+        var ay = (y1+y2+y3) / 3
+        var az = (z1+z2+z3) / 3
+        var mind = 6e6
+        zSpacing.map((v, i) => {
+          if((d=Math.abs(v-az)) < mind){
+            mind = d
+            tgt = i
+          }
+        })
+        if(tgt != -1){
+          centersBank[tgt].z = -zSpacing[tgt]
+          for(var m = 0; m < 3; m++){
+            centersBank[tgt].vertIDs.push(i+m*3)
+          }
+        }
+      }
+      
+      for(var i = 7; i < iPc*7; i++){
+        centersBank[i].x = centersBank[i%7].x
+        centersBank[i].y = centersBank[i%7].y
+        centersBank[i].z = centersBank[i%7].z
+        centersBank[i].vertIDs = structuredClone(centersBank[i%7].vertIDs).map(v => {
+          return v + res.stride * ((i / 7 | 0)-0)
+        })
+      }
+      
+      for(var i = 0 ; i < res.vstate.length; i += 3){
+        res.vertices[i+0] += 1e5
+        res.vertices[i+1] += 0
+        res.vertices[i+2] -= 0
+      }
+      shapes.push(res)
+      baseCenterVerts = structuredClone(res.vertices.slice(0, res.stride))
+    })
+  })
   
   
   var geoOptions = {
     shapeType: 'obj',
     url: 'https://srmcgann.github.io/quadtris/board.obj',
-    map: 'https://srmcgann.github.io/quadtris/board_grey.png',
+    map: 'https://srmcgann.github.io/quadtris/board_purple.png',
     name: 'board',
     cullFace: 'back',
     //disableDepthTest: true,
     //alpha: .5,
-    scaleX: -1.005,
-    scaleY: 1.005,
-    scaleZ: 1,
-    y: 9.33,
+    scaleX: -1.006,
+    scaleY: 1.006,
+    scaleZ: .25,
+    y: 9,
     color: 0x000000,
-    colorMix: .5,
+    colorMix: .75,
   }
   if(1) await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
     for(var i = 0; i < geometry.vertices.length; i+=3){
@@ -328,7 +466,9 @@
   })
  
  
-  const SpawnPiece = id => {
+  const SpawnPiece = (id, x=0,y=0,z=0) => {
+  
+    // pieces
     var subShape = pieceBank.filter((pc, idx) => {
       return pc.id == id && pc.x == 1e5
     })
@@ -341,9 +481,28 @@
         x: -1e5+1,
         y: 0,
         z: subShape[0].z -.2,
-        ox: -1,
-        oy: 6.25,
-        oz: 0,
+        ox: -1 + x,
+        oy: 6.25 + y,
+        oz: 0 + z,
+      })
+    }
+  
+    // centers
+    var subShape = centersBank.filter((pc, idx) => {
+      return pc.id == id && pc.x == 1e5
+    })
+    if(subShape.length){
+      subShape[0].vertices = structuredClone(baseCenterVerts)
+      subShape[0].baseVertices = structuredClone(baseCenterVerts)
+      subShape[0].x = 0
+      centers.push({
+        subShape: subShape[0],
+        x: -1e5+1,
+        y: 0,
+        z: subShape[0].z -.2,
+        ox: -1 + x,
+        oy: 6.25 + y,
+        oz: 0 + z,
       })
     }else{
       console.log('no piece generated!')
@@ -358,7 +517,11 @@
   })
   
   renderer.z = 45
+  SpawnPiece(Rn() * 7 | 0, -2*3, -52)
+  SpawnPiece(Rn() * 7 | 0, 2*4, -52)
   SpawnPiece(Rn() * 7 | 0)
+  //SpawnPiece(Rn() * 7 | 0)
+  //SpawnPiece(Rn() * 7 | 0)
   //SpawnPiece(5)
   
   window.Draw = () => {
@@ -373,30 +536,21 @@
           renderer.Draw(shape)
         break
         case 'pieces':
-          /*if(!((t*60|0)%2)){
-            pieces.map(piece => {
-              // perform checks
-              piece.y -= 2
-              piece.cy -= 2
-            })
-          }*/
           pieces.map(piece => {
             piece.subShape.x = piece.x
             piece.subShape.y = piece.y
             piece.subShape.z = piece.z
-            for(var j = 0; j < iPc; j++){
-              for(var i = 0; i < 7; i++){
-                pieceBank[i+j*7].vertIDs.map(idx => {
-                  var idx2 = idx % shape.stride
-                  shape.vertices[idx + 0] = piece.subShape.baseVertices[idx2 + 0] + pieceBank[i+j*7].x + piece.ox
-                  shape.vertices[idx + 1] = piece.subShape.baseVertices[idx2 + 1] + pieceBank[i+j*7].y + piece.oy
-                  shape.vertices[idx + 2] = piece.subShape.baseVertices[idx2 + 2] + pieceBank[i+j*7].z + piece.oz
-                })
-              }
-            }
+            piece.subShape.vertIDs.map(idx => {
+              var idx2 = idx % shape.stride
+              shape.vertices[idx + 0] = piece.subShape.baseVertices[idx2 + 0] + piece.subShape.x + piece.ox
+              shape.vertices[idx + 1] = piece.subShape.baseVertices[idx2 + 1] + piece.subShape.y + piece.oy
+              shape.vertices[idx + 2] = piece.subShape.baseVertices[idx2 + 2] + piece.subShape.z + piece.oz
+            })
           })
          
           renderer.Draw(shape)
+        break
+        case 'centers':
         break
         case 'board':
           if(Math.abs(boardTheta) > .001){
