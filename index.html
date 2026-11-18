@@ -19,7 +19,7 @@
 
   var rendererOptions = {
     ambientLight: .5, margin: 0,
-    fov: 1500, width: 1920, height: 1080,
+    fov: 1200, width: 1920, height: 1080,
   }
   var renderer = await Coordinates.Renderer(rendererOptions)
   
@@ -40,7 +40,7 @@
   Coordinates.AnimationLoop(renderer, 'Draw')
 
   var shaderOptions = [
-    {lighting: {type: 'ambientLight', value: .3}},
+    {lighting: {type: 'ambientLight', value: .5}},
     { uniform: {
       type: 'phong',
       value: .25
@@ -55,16 +55,25 @@
   var shader = await Coordinates.BasicShader(renderer, shaderOptions)
 
   var shaderOptions = [
-    {lighting: {type: 'ambientLight', value: 2}},
+    {lighting: {type: 'ambientLight', value: .5}},
+    { uniform: {
+      type: 'phong',
+      value: 0
+    } },
+  ]
+  var spriteShader = await Coordinates.BasicShader(renderer, shaderOptions)
+
+  var shaderOptions = [
+    {lighting: {type: 'ambientLight', value: 1}},
     { uniform: {
       type: 'phong',
       value: 0
     } },
     { uniform: {
       type: 'refraction2',
-      angleOfRefraction: 1,
+      angleOfRefraction: 2,
       map: refTexture,
-      value: .1
+      value: .3333
     } },
   ]
   var boardShader = await Coordinates.BasicShader(renderer, shaderOptions)
@@ -338,6 +347,7 @@
   }
 
   var keyTimerInterval = .5
+  var placePieceTimer
   var keys = Array(256).fill(false)
   var keyTimers = Array(256).fill(0)
   
@@ -355,6 +365,33 @@
     }
   }
 
+  const SetRefTexture = (texture, bgLighting=.75) => {
+    shapes.map(shape => {
+      if(shape.map == refTexture) {
+        shape.map = texture
+        shape.rebindTextures = true
+      }
+      shape.shader.datasets.map(ds=>{
+        if(ds.iURL == refTexture) {
+          ds.iURL = texture
+        }
+        if(typeof ds.optionalUniforms != 'undefined'){
+          if(shape.name == 'background'){
+            ds.optionalLighting.map(u => {
+              u.value = bgLighting
+            })
+          }
+          ds.optionalUniforms.map(u => {
+            if(u.map == refTexture) {
+              u.map = texture
+              u.rebindTextures = true
+            }
+          })
+        }
+      })
+    })
+    refTexture = texture
+  }
   const DoKeys = () =>{
     var t = renderer.frameCount / 60
     keys.map((state, key) => {
@@ -362,29 +399,50 @@
         switch(key){
           case 49:
             SetTexture('board', 'https://srmcgann.github.io/quadtris/board_grey.png')
+            shapes.filter(v=>v.name=='board')[0].color = 0x000000
           break
           case 50:
             SetTexture('board', 'https://srmcgann.github.io/quadtris/board_green.png')
+            shapes.filter(v=>v.name=='board')[0].color = 0x00180c
           break
           case 51:
             SetTexture('board', 'https://srmcgann.github.io/quadtris/board_teal.png')
+            shapes.filter(v=>v.name=='board')[0].color = 0x001818
           break
           case 52:
             SetTexture('board', 'https://srmcgann.github.io/quadtris/board_purple.png')
+            shapes.filter(v=>v.name=='board')[0].color = 0x080010
+          break
+          case 53:
+            SetRefTexture('https://srmcgann.github.io/skyboxes2/HDRI/1.jpg', 1)
+          break
+          case 54:
+            SetRefTexture('https://skyboxes2.verymad.net/images/treehouses.jpg', 1)
+          break
+          case 55:
+            SetRefTexture('https://srmcgann.github.io/skyboxes3/HDRI/skymaze.jpg', 1)
+          break
+          case 56:
+            SetRefTexture('https://srmcgann.github.io/skyboxes7/HDRI/quickgrid.png', 1)
+          break
+          case 57:
+            SetRefTexture('https://skyboxes2.verymad.net/images/doommaze.jpg', 1)
+          break
+          case 48:
+            SetRefTexture('https://skyboxes2.verymad.net/images/fantasy1.jpg', 1)
           break
           case 65: // a
             if(keyTimers[key] < t){
               boardTheta += Math.PI*2/3
-              keyTimers[key] = t + keyTimerInterval
+              keyTimers[key] = t + keyTimerInterval / 1.5
               keys[key] = false
               state = false
-              
             }
           break
           case 68: // d
             if(keyTimers[key] < t){
               boardTheta -= Math.PI*2/3
-              keyTimers[key] = t + keyTimerInterval
+              keyTimers[key] = t + keyTimerInterval / 1.5
               keys[key] = false
               state = false
             }
@@ -403,19 +461,19 @@
             if(keyTimers[key] < t && Test('left')){
               pieces[pieces.length-1].ox -= 2
               centers[centers.length-1].ox -= 2
-              keyTimers[key] = t + keyTimerInterval / 2
+              keyTimers[key] = t + keyTimerInterval * (t-keyTimers[key] > keyTimerInterval? 1 : .25)
             }
           break
           case 38: // up arrow
             if(keyTimers[key] < t && Test('rotate')){
-              keyTimers[key] = t + keyTimerInterval / 2
+              keyTimers[key] = t + keyTimerInterval * (t-keyTimers[key] > keyTimerInterval? 1 : .25)
             }
           break
           case 39: // right arrow
             if(keyTimers[key] < t && Test('right')){
               pieces[pieces.length-1].ox += 2
               centers[centers.length-1].ox += 2
-              keyTimers[key] = t + keyTimerInterval / 2
+              keyTimers[key] = t + keyTimerInterval * (t-keyTimers[key] > keyTimerInterval? 1 : .25)
             }
           break
           case 40: // down arrow
@@ -423,9 +481,15 @@
               if(Test('down')){
                 pieces[pieces.length-1].oy -= 2
                 centers[centers.length-1].oy -= 2
-                keyTimers[key] = t + keyTimerInterval / 8
+                keyTimers[key] = t + keyTimerInterval * (t-keyTimers[key] > keyTimerInterval? 1 : .1)
               }else{
-                SpawnPiece(Rn() * 7 | 0)
+                if(t-keyTimers[key] > keyTimerInterval){
+                  placePieceTimer = t + 30
+                }else{
+                  if(placePieceTimer < t){
+                    SpawnPiece(Rn() * 7 | 0)
+                  }
+                }
               }
             }
           break
@@ -630,10 +694,10 @@
   var geoOptions = {
     shapeType: 'obj',
     url: 'https://srmcgann.github.io/quadtris/board.obj',
-    map: 'https://srmcgann.github.io/quadtris/board_purple.png',
+    map: 'https://srmcgann.github.io/quadtris/board_grey.png',
     name: 'board',
     cullFace: 'back',
-    //disableDepthTest: true,
+    disableDepthTest: false,
     //alpha: .5,
     scaleX: -1.006,
     scaleY: 1.006,
@@ -642,7 +706,7 @@
     color: 0x000000,
     colorMix: .75,
   }
-  if(1) await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+  await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
     for(var i = 0; i < geometry.vertices.length; i+=3){
       geometry.vertices[i+0] += 0
       geometry.vertices[i+1] += 0
@@ -653,20 +717,49 @@
  })
   
   
+  var iFc = 10
+  var baseFlash
+  var pointArray = Array(iFc).fill().map((v, i) => {
+    return [0,0,0]
+  })
   var geoOptions = {
     shapeType: 'sprite',
+    name: 'flashes',
+    map: 'https://srmcgann.github.io/Coordinates/resources/stars/star1.png',
+    size: 30,
+    colorMix: 0,
+  }
+  await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+    baseFlash = structuredClone(geometry.vertices)
+    Coordinates.ShapeFromArray(geometry, pointArray).then(res =>{
+      shapes.push(res)
+    })
+  })
+ 
+ 
+  var geoOptions = {
+    shapeType: 'rect',
     map: 'https://srmcgann.github.io/Coordinates/resources/stars/star1.png',
     name: 'sprite',
     y: 9.5,
-    disableDepthTest: true,
-    size: 100,
-    z: 10,
-    alpha: .2,
+    roll: Math.PI/4,
+    disableDepthTest: false,
+    size: 300,
+    z: 40,
+    alpha: .9,
+    colorMix: 0,
   }
   if(1)await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
     shapes.push(geometry)
+    await spriteShader.ConnectGeometry(geometry)
   })
  
+  var flashes = []
+  const SpawnFlash = (x, y, z) => {
+    flashes.push({
+      x, y, z, life: 1
+    })
+  }
  
   const SpawnPiece = (id, x=0,y=0,z=0) => {
   
@@ -686,6 +779,9 @@
         ox: -1 + x,
         oy: 6.25 + y,
         oz: 0 + z,
+        ix: -1 + x,
+        iy: 6.25 + y,
+        iz: 0 + z,
         worldTheta: 0,
       })
     }
@@ -711,6 +807,8 @@
     }else{
       console.log('no piece generated!')
     }
+    
+    SpawnFlash(0,6,0)
   }
   
   if(0) Coordinates.LoadFPSControls(renderer, {
@@ -720,11 +818,14 @@
     crosshairSize: .5,
   })
   
-  renderer.z = 45
+  renderer.z = 52
   SpawnPiece(Rn() * 7 | 0)
   
   window.Draw = () => {
     var t = renderer.frameCount / 60
+    
+    renderer.yaw = S(t/8)/8
+    renderer.pitch = C(t/16)/8
     
     if(!((t*60|0)%(240/(1+level/4)|0))){
       if(Test('down')){
@@ -741,6 +842,8 @@
     shapes.forEach(shape => {
       switch(shape.name){
         case 'background':
+          shape.yaw += C(t/32) / 800
+          shapes.filter(v=>v.name=='board')[0].shader.datasets[0].optionalUniforms.filter(v=>v.name=='refraction2')[0].theta = shape.yaw
           renderer.Draw(shape)
         break
         case 'pieces':
@@ -750,10 +853,12 @@
             piece.subShape.z = piece.z
             var ox = piece.ox
             var oy = piece.oy
-            p = Math.atan2(ox, oy) + piece.worldTheta
-            d = Math.hypot(ox, oy)
-            ox = S(p) * d
-            oy = C(p) * d
+            var ix = piece.ix += (piece.ox - piece.ix) / 2
+            var iy = piece.iy += (piece.oy - piece.iy) / 2
+            p = Math.atan2(ix, iy) + piece.worldTheta
+            d = Math.hypot(ix, iy)
+            ix = S(p) * d
+            iy = C(p) * d
             piece.subShape.vertIDs.map(idx => {
               var idx2 = idx % shape.stride
               x = piece.subShape.baseVertices[idx2 + 0] + piece.subShape.x
@@ -762,9 +867,9 @@
               d = Math.hypot(x, y)
               x = S(p) * d
               y = C(p) * d
-              shape.vertices[idx + 0] = x + ox
-              shape.vertices[idx + 1] = y + oy + 8
-              shape.vertices[idx + 2] = piece.subShape.baseVertices[idx2 + 2] + piece.subShape.z + piece.oz
+              shape.vertices[idx + 0] = x + ix
+              shape.vertices[idx + 1] = y + iy + 8
+              shape.vertices[idx + 2] = (piece.subShape.baseVertices[idx2 + 2] + piece.subShape.z + piece.oz) * 10 + 2
             })
           })
          
@@ -790,9 +895,10 @@
               }, renderer)
               
               centers[centers.length-1].oy = tyc
-              var s = 20
-              ctx.fillStyle = '#8884'
-              ctx.fillRect(ar[0]-s/2,ar[1]-s/2,s,s)
+              var s = 24
+              //ctx.fillStyle = `hsla(${t*5e4},99%,80%,.5)`
+              ctx.fillStyle = `#8884`
+              ctx.fillRect(ar[0]-s/2,ar[1]-s/2.75,s,s)
             })
           }
           
@@ -807,6 +913,37 @@
             })
           }
         break
+        case 'flashes':
+          flashes = flashes.filter(v=>v.life>0)
+          shape.shapeData.map((subShape, sIdx) => {
+            if(sIdx < flashes.length){
+              for(var i = 0; i < shape.stride; i +=3){
+                var idx = sIdx * shape.stride + i
+                x = baseFlash[i + 0] * flashes[sIdx].life
+                y = baseFlash[i + 1] * flashes[sIdx].life+8
+                z = baseFlash[i + 2] * flashes[sIdx].life
+                shape.vstate[idx+0] = x
+                shape.vstate[idx+1] = y
+                shape.vstate[idx+2] = z
+                shape.vertices[idx+0] = x
+                shape.vertices[idx+1] = y
+                shape.vertices[idx+2] = z
+              }
+              flashes[sIdx].life -= .1
+            }else{
+              for(var i = 0; i < shape.stride; i +=3){
+                var idx = sIdx * shape.stride + i
+                shape.vstate[idx+0] = 1e5
+                shape.vstate[idx+1] = 1e5
+                shape.vstate[idx+2] = 1e5
+                shape.vertices[idx+0] = 1e5
+                shape.vertices[idx+1] = 1e5
+                shape.vertices[idx+2] = 1e5
+              }
+            }
+          })
+          renderer.Draw(shape)
+        break
         case 'board':
           if(Math.abs(boardTheta) > .001){
             var theta = boardThetaInterval * (boardTheta > 0 ? -1: 1)
@@ -820,6 +957,10 @@
           }else{
             boardTheta = 0
           }
+          renderer.Draw(shape)
+        break
+        case 'sprite':
+          shape.roll += .003
           renderer.Draw(shape)
         break
         default:
