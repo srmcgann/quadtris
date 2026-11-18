@@ -520,6 +520,7 @@
 
   var shapes = []
   var pieces = []
+  var samples = []
   var dropPiece
   var centers = []
   var box    = []
@@ -847,6 +848,17 @@
   })
  
   const CheckRows = () => {
+    
+    var ar = GetPieceCoords(centers[centers.length-1])
+    ar.map(v=>{
+      v.map(q=>{
+        SpawnSamplePiece(pieces[pieces.length-1].subShape.id,v[0]*2,v[1]*2-6,v[2])
+      })
+    })
+    ReleasePiece(pieces[pieces.length-1])
+    ReleaseCenter(centers[centers.length-1])
+    
+    /*
     var a, x, y, z, toDel = []
     var b = Array(50).fill().map(v=>Array(10).fill().map(q=>{
       return { state: 0, idx: -1 }
@@ -882,13 +894,6 @@
         })
       }
     })
-    /*
-    setTimeout(()=>{
-      toDel.forEach(v => {
-        delete pieces[v]
-        delete centers[v]
-      })
-    },0)
     */
   }
   
@@ -897,6 +902,82 @@
     flashes.push({ x, y, z, life, redRate })
   }
  
+  const SpawnSamplePiece = (id, x=0,y=0,z=0) => {
+    var subShape = sampleBank.filter((pc, idx) => {
+      return pc.id == id && pc.x == 1e5
+    })
+    if(subShape.length){
+      subShape[0].baseVertices = structuredClone(baseSampleVerts)
+      subShape[0].x = 0
+      samples.push({
+        subShape: subShape[0],
+        x: -1e5+1,
+        y: 0,
+        z: subShape[0].z -.2,
+        ox: -1 + x,
+        oy: 6.25 + y,
+        oz: 0 + z,
+        ix: -1 + x,
+        iy: 6.25 + y,
+        iz: 0 + z,
+        worldTheta: 0,
+      })
+    }
+  }
+  
+  const ReleasePiece = piece => {
+    var shape = shapes.filter(v=>v.name=='pieces')[0]
+    piece.subShape.x = 1e5    
+    var ox = piece.ox
+    var oy = piece.oy
+    var ix = piece.ix += (piece.ox - piece.ix) / 2
+    var iy = piece.iy += (piece.oy - piece.iy) / 2
+    p = Math.atan2(ix, iy) + piece.worldTheta
+    d = Math.hypot(ix, iy)
+    ix = S(p) * d
+    iy = C(p) * d
+    piece.subShape.vertIDs.map(idx => {
+      var idx2 = idx % shape.stride
+      x = piece.subShape.baseVertices[idx2 + 0] + piece.subShape.x
+      y = piece.subShape.baseVertices[idx2 + 1] + piece.subShape.y - 8
+      p = Math.atan2(x, y) + piece.worldTheta
+      d = Math.hypot(x, y)
+      x = S(p) * d
+      y = C(p) * d
+      shape.vertices[idx + 0] = x + ix
+      shape.vertices[idx + 1] = y + iy + 8
+      shape.vertices[idx + 2] = (piece.subShape.baseVertices[idx2 + 2] + piece.subShape.z + piece.oz) * 10 + 2
+    })
+    pieces = pieces.filter(v => v != piece)
+  }
+  
+  const ReleaseCenter = center => {
+    var shape = shapes.filter(v=>v.name=='centers')[0]
+    center.subShape.x = 1e5    
+    var ox = center.ox
+    var oy = center.oy
+    var ix = center.ix += (center.ox - center.ix) / 2
+    var iy = center.iy += (center.oy - center.iy) / 2
+    p = Math.atan2(ix, iy) + center.worldTheta
+    d = Math.hypot(ix, iy)
+    ix = S(p) * d
+    iy = C(p) * d
+    center.subShape.vertIDs.map(idx => {
+      var idx2 = idx % shape.stride
+      x = center.subShape.baseVertices[idx2 + 0] + center.subShape.x
+      y = center.subShape.baseVertices[idx2 + 1] + center.subShape.y - 8
+      p = Math.atan2(x, y) + center.worldTheta
+      d = Math.hypot(x, y)
+      x = S(p) * d
+      y = C(p) * d
+      shape.vertices[idx + 0] = x + ix
+      shape.vertices[idx + 1] = y + iy + 8
+      shape.vertices[idx + 2] = (center.subShape.baseVertices[idx2 + 2] + center.subShape.z + center.oz) * 10 + 2
+    })
+    centers = centers.filter(v => v != center)
+  }
+  
+  
   const SpawnPiece = (id, x=0,y=0,z=0) => {
   
     // centers
@@ -926,8 +1007,6 @@
     })
     if(subShape.length){
       subShape[0].baseVertices = structuredClone(baseShapeVerts)
-      
-      
       subShape[0].x = 0
       pieces.push({
         subShape: subShape[0],
@@ -943,9 +1022,10 @@
         worldTheta: 0,
       })
     }
-    
     SpawnFlash(-.5,-1,0,.5,.25)
   }
+  
+  //SpawnSamplePiece(0,0,0,0)
   
   if(0) Coordinates.LoadFPSControls(renderer, {
     flyMode: true,
@@ -955,8 +1035,8 @@
   })
   
   renderer.z = 52
-  //SpawnPiece(Rn() * 7 | 0)
-  SpawnPiece(4)
+  SpawnPiece(Rn() * 7 | 0)
+  //SpawnPiece(4)
   
   window.Draw = () => {
     var t = renderer.frameCount / 60
@@ -982,6 +1062,34 @@
         case 'background':
           shape.yaw += C(t/32) / 800
           shapes.filter(v=>v.name=='board')[0].shader.datasets[0].optionalUniforms.filter(v=>v.name=='refraction2')[0].theta = shape.yaw
+          renderer.Draw(shape)
+        break
+        case 'samples':
+          samples.map(sample => {
+            sample.subShape.x = sample.x
+            sample.subShape.y = sample.y
+            sample.subShape.z = sample.z
+            var ox = sample.ox
+            var oy = sample.oy
+            var ix = sample.ix += (sample.ox - sample.ix) / 2
+            var iy = sample.iy += (sample.oy - sample.iy) / 2
+            p = Math.atan2(ix, iy) + sample.worldTheta
+            d = Math.hypot(ix, iy)
+            ix = S(p) * d
+            iy = C(p) * d
+            sample.subShape.vertIDs.map(idx => {
+              var idx2 = idx % shape.stride
+              x = sample.subShape.baseVertices[idx2 + 0] + sample.subShape.x
+              y = sample.subShape.baseVertices[idx2 + 1] + sample.subShape.y - 8
+              p = Math.atan2(x, y) + sample.worldTheta
+              d = Math.hypot(x, y)
+              x = S(p) * d
+              y = C(p) * d
+              shape.vertices[idx + 0] = x + ix
+              shape.vertices[idx + 1] = y + iy + 8
+              shape.vertices[idx + 2] = (sample.subShape.baseVertices[idx2 + 2] + sample.subShape.z + sample.oz) * 10 + 2
+            })
+          })
           renderer.Draw(shape)
         break
         case 'pieces':
