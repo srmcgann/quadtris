@@ -19,11 +19,14 @@
 
   var rendererOptions = {
     ambientLight: .5, margin: 0,
-    fov: 1200, width: 1920, height: 1080,
+    fov: 800, width: 1920, height: 1080,
   }
   var renderer = await Coordinates.Renderer(rendererOptions)
   
-  var refTexture = 'https://skyboxes2.verymad.net/images/stars2.jpg'
+  //var refTexture = 'https://skyboxes2.verymad.net/images/stars2.jpg'
+  //var refTexture = 'https://skyboxes2.verymad.net/videos/starfield.mp4'
+  var refTexture = 'https://skyboxes2.verymad.net/videos/sierpenski_tetrahedron_small.mp4'
+  var playbackSpeed = .75
   
   var S = Math.sin
   var C = Math.cos
@@ -48,7 +51,9 @@
     { uniform: {
       type: 'reflection',
       map: refTexture,
+      playbackSpeed,
       enabled: false,
+      theta: Math.PI/2,
       value: .1
     } },
   ]
@@ -71,15 +76,17 @@
     } },
     { uniform: {
       type: 'refraction2',
-      angleOfRefraction: 2,
+      angleOfRefraction: -3,
       map: refTexture,
-      value: .3333
+      playbackSpeed,
+      theta: Math.PI/2,
+      value: 2
     } },
   ]
   var boardShader = await Coordinates.BasicShader(renderer, shaderOptions)
 
   var shaderOptions = [
-    {lighting: {type: 'ambientLight', value: 1}},
+    {lighting: {type: 'ambientLight', value: 1.3}},
     { uniform: {
       type: 'phong',
       value: 0
@@ -399,15 +406,15 @@
         switch(key){
           case 49:
             SetTexture('board', 'https://srmcgann.github.io/quadtris/board_grey.png')
-            shapes.filter(v=>v.name=='board')[0].color = 0x000000
+            shapes.filter(v=>v.name=='board')[0].color = 0x101010
           break
           case 50:
             SetTexture('board', 'https://srmcgann.github.io/quadtris/board_green.png')
-            shapes.filter(v=>v.name=='board')[0].color = 0x00180c
+            shapes.filter(v=>v.name=='board')[0].color = 0x001008
           break
           case 51:
             SetTexture('board', 'https://srmcgann.github.io/quadtris/board_teal.png')
-            shapes.filter(v=>v.name=='board')[0].color = 0x001818
+            shapes.filter(v=>v.name=='board')[0].color = 0x001010
           break
           case 52:
             SetTexture('board', 'https://srmcgann.github.io/quadtris/board_purple.png')
@@ -426,7 +433,7 @@
             SetRefTexture('https://srmcgann.github.io/skyboxes7/HDRI/quickgrid.png', 1)
           break
           case 57:
-            SetRefTexture('https://skyboxes2.verymad.net/images/doommaze.jpg', 1)
+            SetRefTexture('https://srmcgann.github.io/skyboxes3/HDRI/angels.jpg', 1)
           break
           case 48:
             SetRefTexture('https://skyboxes2.verymad.net/images/fantasy1.jpg', 1)
@@ -453,6 +460,8 @@
                 pieces[pieces.length-1].oy -= 2
                 centers[centers.length-1].oy -= 2
               }
+              
+              CheckRows()
               SpawnPiece(Rn() * 7 | 0)
               keyTimers[key] = t + keyTimerInterval * 2
             }
@@ -487,6 +496,7 @@
                   placePieceTimer = t + 30
                 }else{
                   if(placePieceTimer < t){
+                    CheckRows()
                     SpawnPiece(Rn() * 7 | 0)
                   }
                 }
@@ -517,7 +527,9 @@
   var geoOptions = {
     shapeType: 'dodecahedron',
     name: 'background',
+    playbackSpeed,
     sphereize: 1,
+    yaw: Math.PI/2,
     subs: 4,
     map: refTexture,
     size: 5e3,
@@ -717,7 +729,7 @@
  })
   
   
-  var iFc = 10
+  var iFc = 100
   var baseFlash
   var pointArray = Array(iFc).fill().map((v, i) => {
     return [0,0,0]
@@ -725,7 +737,7 @@
   var geoOptions = {
     shapeType: 'sprite',
     name: 'flashes',
-    map: 'https://srmcgann.github.io/Coordinates/resources/stars/star1.png',
+    map: 'https://srmcgann.github.io/Coordinates/resources/stars/megastar.png',
     size: 30,
     colorMix: 0,
   }
@@ -754,11 +766,55 @@
     await spriteShader.ConnectGeometry(geometry)
   })
  
-  var flashes = []
-  const SpawnFlash = (x, y, z) => {
-    flashes.push({
-      x, y, z, life: 1
+  const CheckRows = () => {
+    var a, x, y, z, toDel = []
+    var b = Array(50).fill().map(v=>Array(10).fill().map(q=>{
+      return { state: 0, idx: -1 }
+    }))
+    centers.map((v,i) =>{
+      if(i < centers.length){
+        a = GetPieceCoords(v)
+        a.map((q,j) => {
+          if(q[0]!=1e5){
+            b[-q[1]+10][q[0]+4].state = 1
+            b[-q[1]+10][q[0]+4].idx = i
+          }
+        })
+      }
     })
+    var boardShape = shapes.filter(v=>v.name=='board')[0]
+    b.map((v, i) => {
+      if(v.filter((q,j)=>!!q.state).length == 10){
+        v.forEach((q, j)=>{
+          toDel.push(q.idx)
+          x = (j-4.5)*2
+          y = (-i+8)*2
+          z = -5
+          p = Math.atan2(y,z) - renderer.pitch
+          d = Math.hypot(y,z)
+          y = S(p) * d
+          z = C(p) * d
+          p = Math.atan2(x,z) + renderer.yaw
+          d = Math.hypot(x,z)
+          x = S(p) * d
+          z = C(p) * d
+          SpawnFlash(x, y, z, .25, .1)
+        })
+      }
+    })
+    /*
+    setTimeout(()=>{
+      toDel.forEach(v => {
+        delete pieces[v]
+        delete centers[v]
+      })
+    },0)
+    */
+  }
+  
+  var flashes = []
+  const SpawnFlash = (x, y, z, life=1, redRate=1) => {
+    flashes.push({ x, y, z, life, redRate })
   }
  
   const SpawnPiece = (id, x=0,y=0,z=0) => {
@@ -808,7 +864,7 @@
       console.log('no piece generated!')
     }
     
-    SpawnFlash(0,6,0)
+    SpawnFlash(0,-1,0)
   }
   
   if(0) Coordinates.LoadFPSControls(renderer, {
@@ -825,13 +881,14 @@
     var t = renderer.frameCount / 60
     
     renderer.yaw = S(t/8)/8
-    renderer.pitch = C(t/16)/8
+    renderer.pitch = C(t/16)/16
     
     if(!((t*60|0)%(240/(1+level/4)|0))){
       if(Test('down')){
         pieces[pieces.length-1].oy -= 2
         centers[centers.length-1].oy -= 2
       }else{
+        CheckRows()
         SpawnPiece(Rn() * 7 | 0)
       }
     }
@@ -895,9 +952,9 @@
               }, renderer)
               
               centers[centers.length-1].oy = tyc
-              var s = 24
+              var s = 20
               //ctx.fillStyle = `hsla(${t*5e4},99%,80%,.5)`
-              ctx.fillStyle = `#8884`
+              ctx.fillStyle = `#fff3`
               ctx.fillRect(ar[0]-s/2,ar[1]-s/2.75,s,s)
             })
           }
@@ -922,14 +979,14 @@
                 x = baseFlash[i + 0] * flashes[sIdx].life
                 y = baseFlash[i + 1] * flashes[sIdx].life+8
                 z = baseFlash[i + 2] * flashes[sIdx].life
-                shape.vstate[idx+0] = x
-                shape.vstate[idx+1] = y
-                shape.vstate[idx+2] = z
-                shape.vertices[idx+0] = x
-                shape.vertices[idx+1] = y
-                shape.vertices[idx+2] = z
+                shape.vstate[idx+0] = x + flashes[sIdx].x
+                shape.vstate[idx+1] = y + flashes[sIdx].y
+                shape.vstate[idx+2] = z + flashes[sIdx].z
+                shape.vertices[idx+0] = x + flashes[sIdx].x
+                shape.vertices[idx+1] = y + flashes[sIdx].y
+                shape.vertices[idx+2] = z + flashes[sIdx].z
               }
-              flashes[sIdx].life -= .1
+              flashes[sIdx].life -= .1 * flashes[sIdx].redRate
             }else{
               for(var i = 0; i < shape.stride; i +=3){
                 var idx = sIdx * shape.stride + i
