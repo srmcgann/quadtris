@@ -25,7 +25,7 @@
   
   //var refTexture = 'https://skyboxes2.verymad.net/images/stars2.jpg'
   //var refTexture = 'https://skyboxes2.verymad.net/videos/starfield.mp4'
-  var refTexture = 'https://skyboxes2.verymad.net/videos/sierpenski_tetrahedron_small.mp4'
+  var refTexture = 'https://srmcgann.github.io/skyboxes2/HDRI/stars.jpg'
   var playbackSpeed = .75
   
   var S = Math.sin
@@ -549,7 +549,6 @@
       y: 0,
       z: 0,
       vertIDs: [],
-      vertices: [],
     }
   })
   
@@ -819,35 +818,11 @@
  
   const SpawnPiece = (id, x=0,y=0,z=0) => {
   
-    // pieces
-    var subShape = pieceBank.filter((pc, idx) => {
-      return pc.id == id && pc.x == 1e5
-    })
-    if(subShape.length){
-      subShape[0].vertices = structuredClone(baseShapeVerts)
-      subShape[0].baseVertices = structuredClone(baseShapeVerts)
-      subShape[0].x = 0
-      pieces.push({
-        subShape: subShape[0],
-        x: -1e5+1,
-        y: 0,
-        z: subShape[0].z -.2,
-        ox: -1 + x,
-        oy: 6.25 + y,
-        oz: 0 + z,
-        ix: -1 + x,
-        iy: 6.25 + y,
-        iz: 0 + z,
-        worldTheta: 0,
-      })
-    }
-  
     // centers
     var subShape = centersBank.filter((pc, idx) => {
       return pc.id == id && pc.x == 1e5
     })
     if(subShape.length){
-      subShape[0].vertices = structuredClone(baseCenterVerts)
       subShape[0].baseVertices = structuredClone(baseCenterVerts)
       subShape[0].x = 0
       centers.push({
@@ -863,8 +838,32 @@
     }else{
       console.log('no piece generated!')
     }
+
+    // pieces
+    var subShape = pieceBank.filter((pc, idx) => {
+      return pc.id == id && pc.x == 1e5
+    })
+    if(subShape.length){
+      subShape[0].baseVertices = structuredClone(baseShapeVerts)
+      
+      
+      subShape[0].x = 0
+      pieces.push({
+        subShape: subShape[0],
+        x: -1e5+1,
+        y: 0,
+        z: subShape[0].z -.2,
+        ox: -1 + x,
+        oy: 6.25 + y,
+        oz: 0 + z,
+        ix: -1 + x,
+        iy: 6.25 + y,
+        iz: 0 + z,
+        worldTheta: 0,
+      })
+    }
     
-    SpawnFlash(0,-1,0)
+    SpawnFlash(-.5,-1,0,.5,.25)
   }
   
   if(0) Coordinates.LoadFPSControls(renderer, {
@@ -875,7 +874,8 @@
   })
   
   renderer.z = 52
-  SpawnPiece(Rn() * 7 | 0)
+  //SpawnPiece(Rn() * 7 | 0)
+  SpawnPiece(4)
   
   window.Draw = () => {
     var t = renderer.frameCount / 60
