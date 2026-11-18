@@ -541,8 +541,17 @@
   })
   
   var pointArray = Array(iPc).fill().map((v,i) => [0,0,0])
-  
   var pieceBank = Array(7*iPc).fill().map((v, i) => {
+    return{
+      id: i%7,
+      x: 1e5,
+      y: 0,
+      z: 0,
+      vertIDs: [],
+    }
+  })
+  
+  var sampleBank = Array(7*iPc*4).fill().map((v, i) => {
     return{
       id: i%7,
       x: 1e5,
@@ -563,11 +572,12 @@
     }
   })
   
+  var tetraminoTexture = 'https://srmcgann.github.io/quadtris/tetraminoes2.png'
   var baseShapeVerts
   var geoOptions = {
     shapeType: 'obj',
     url: 'https://srmcgann.github.io/quadtris/tetraminoes.obj',
-    map: 'https://srmcgann.github.io/quadtris/tetraminoes2.png',
+    map: tetraminoTexture,
     name: 'pieces',
     //disableDepthTest: true,
     scaleX: -.95,
@@ -630,6 +640,77 @@
       }
       shapes.push(res)
       baseShapeVerts = structuredClone(res.vertices.slice(0, res.stride))
+      await shader.ConnectGeometry(res)
+    })
+  })
+  
+  var baseSampleVerts
+  var geoOptions = {
+    shapeType: 'obj',
+    url: 'https://srmcgann.github.io/quadtris/samplePieces.obj',
+    map: tetraminoTexture,
+    name: 'samples',
+    //disableDepthTest: true,
+    scaleX: -.95,
+    scaleY: -.95,
+    scaleZ: .25,
+    objZ: -.25,
+    colorMix: 0,
+  }
+  await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+    await Coordinates.ShapeFromArray(geometry, pointArray).then(async res =>{
+      var zSpacing = []
+      var sp = .5
+      for(var i = 0; i < 7; i ++){
+        zSpacing.push((i-3.5)*sp)
+      }
+      
+      for(var i = 0; i < res.stride; i += 9){
+        var pcIdx = i/3/iPc/7
+        var tgt = -1
+        var x1 = res.vertices[i+0]
+        var y1 = res.vertices[i+1]
+        var z1 = res.vertices[i+2]
+        var x2 = res.vertices[i+3]
+        var y2 = res.vertices[i+4]
+        var z2 = res.vertices[i+5]
+        var x3 = res.vertices[i+6]
+        var y3 = res.vertices[i+7]
+        var z3 = res.vertices[i+8]
+        var ax = (x1+x2+x3) / 3
+        var ay = (y1+y2+y3) / 3
+        var az = (z1+z2+z3) / 3
+        var mind = 6e6
+        zSpacing.map((v, i) => {
+          if((d=Math.abs(v-az)) < mind){
+            mind = d
+            tgt = i
+          }
+        })
+        if(tgt != -1){
+          sampleBank[tgt].z = -zSpacing[tgt]
+          for(var m = 0; m < 3; m++){
+            sampleBank[tgt].vertIDs.push(i+m*3)
+          }
+        }
+      }
+      
+      for(var i = 7; i < iPc*7; i++){
+        sampleBank[i].x = sampleBank[i%7].x
+        sampleBank[i].y = sampleBank[i%7].y
+        sampleBank[i].z = sampleBank[i%7].z
+        sampleBank[i].vertIDs = structuredClone(sampleBank[i%7].vertIDs).map(v => {
+          return v + res.stride * ((i / 7 | 0)-0)
+        })
+      }
+      
+      for(var i = 0 ; i < res.vstate.length; i += 3){
+        res.vertices[i+0] += 1e5
+        res.vertices[i+1] += 0
+        res.vertices[i+2] -= 0
+      }
+      shapes.push(res)
+      baseSampleVerts = structuredClone(res.vertices.slice(0, res.stride))
       await shader.ConnectGeometry(res)
     })
   })
