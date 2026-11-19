@@ -934,8 +934,8 @@
     var ar = GetPieceCoords(centers[centers.length-1])
     ar.map(v=>{
       v.map(q=>{
-        SpawnSamplePiece(pieces[pieces.length-1].subShape.id,v[0]*2,v[1]*2-6,v[2])
-        SpawnSampleCenterPiece(pieces[pieces.length-1].subShape.id,v[0]*2,v[1]*2-6,v[2])
+        SpawnSamplePiece(pieces[pieces.length-1].subShape.id,v[0]*2,v[1]*2-6,0)
+        SpawnSampleCenterPiece(pieces[pieces.length-1].subShape.id,v[0]*2,v[1]*2-6,0)
       })
     })
     ReleasePiece(pieces[pieces.length-1])
@@ -1009,7 +1009,7 @@
   }
 
   const SpawnSampleCenterPiece = (id, x=0,y=0,z=0) => {
-    var subShape = sampleBank.filter((pc, idx) => {
+    var subShape = sampleCentersBank.filter((pc, idx) => {
       return pc.id == id && pc.x == 1e5
     })
     if(subShape.length){
@@ -1254,6 +1254,16 @@
           
         break
         case 'centers':
+          if(Math.abs(boardTheta) > .001){
+            var theta = boardThetaInterval * (boardTheta > 0 ? -1: 1)
+            centers.map((v, i) => {
+              if(i < centers.length - 1){
+                v.worldTheta += theta / 6
+              }
+            })
+          }
+        break
+        case 'sampleCenters':
           if(Math.abs(boardTheta) > .001){
             var theta = boardThetaInterval * (boardTheta > 0 ? -1: 1)
             centers.map((v, i) => {
