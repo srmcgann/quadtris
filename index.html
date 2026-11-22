@@ -105,16 +105,15 @@
     while(pc.worldTheta > Math.PI*2){
       pc.worldTheta -= Math.PI*2
     }
-    
     if(C(pc.worldTheta) > 0){
       pc.subShape.vertIDs.map((v,i) => {
-        var idx = v%252
+        var idx = v%(pc.subShape.vertIDs.length == 12 ? 252 : 63)
         a.push(
           pc.subShape.baseVertices[idx+0] + pc.x + pc.ox,
           pc.subShape.baseVertices[idx+1] + pc.y + pc.oy,
         )
       })
-      for(var i = 0; i < 4; i ++){
+      for(var i = 0; i < (pc.subShape.vertIDs.length == 12 ? 4 : 1); i ++){
         x = 0
         y = 0
         for(var j = 0; j < 3; j++){
@@ -126,20 +125,22 @@
         b.push([x,y])
       }
       b = b.map(v=>{
-        return v.map(q=>{
-          return Math.round(Math.round((q-.01) / 1)/2+.5)
+        return v.map((q,j) => {
+          return Math.round(q/2+.5)
+          //return Math.round(Math.round(q-.01*(j?1:-1))/2+.5)
         })
       })
     }else{
-      b = [
+      b = pc.subShape.vertIDs.length == 12 ? [
         [1e5, 1e5],
         [1e5, 1e5],
         [1e5, 1e5],
         [1e5, 1e5],
-      ]
+      ] : [1e5, 1e5]
     }
     return b
   }
+  
   
   const RotatePiece = theta => {
     if(pieces[pieces.length-1].subShape.id != 2){
