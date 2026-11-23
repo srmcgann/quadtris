@@ -605,7 +605,7 @@
     colorMix: 0,
   }
   await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
-    await Coordinates.ShapeFromArray(geometry, pointArray).then(async res =>{
+    await Coordinates.ShapeFromArray(geometry, pointArray).then(async res => {
       var zSpacing = []
       var sp = .5
       for(var i = 0; i < 7; i ++){
@@ -613,7 +613,6 @@
       }
       
       for(var i = 0; i < res.stride; i += 9){
-        var pcIdx = i/3/iPc/7
         var tgt = -1
         var x1 = res.vertices[i+0]
         var y1 = res.vertices[i+1]
@@ -684,7 +683,6 @@
       }
       
       for(var i = 0; i < res.stride; i += 9){
-        var pcIdx = i/3/iPc/7
         var tgt = -1
         var x1 = res.vertices[i+0]
         var y1 = res.vertices[i+1]
@@ -713,7 +711,7 @@
         }
       }
       
-      for(var i = 7; i < iPc*7; i++){
+      for(var i = 7; i < iPc*7*4; i++){
         sampleBank[i].x = sampleBank[i%7].x
         sampleBank[i].y = sampleBank[i%7].y
         sampleBank[i].z = sampleBank[i%7].z
@@ -752,7 +750,6 @@
       }
       
       for(var i = 0; i < res.stride; i += 9){
-        var pcIdx = i/3/iPc/7
         var tgt = -1
         var x1 = res.vertices[i+0]
         var y1 = res.vertices[i+1]
@@ -819,7 +816,6 @@
       }
       
       for(var i = 0; i < res.stride; i += 9){
-        var pcIdx = i/3/iPc/7
         var tgt = -1
         var x1 = res.vertices[i+0]
         var y1 = res.vertices[i+1]
@@ -848,7 +844,7 @@
         }
       }
       
-      for(var i = 7; i < iPc*7; i++){
+      for(var i = 7; i < iPc*7*4; i++){
         sampleCentersBank[i].x = sampleCentersBank[i%7].x
         sampleCentersBank[i].y = sampleCentersBank[i%7].y
         sampleCentersBank[i].z = sampleCentersBank[i%7].z
@@ -1102,6 +1098,9 @@
         ox: -1 + x,
         oy: 6.25 + y,
         oz: 0 + z,
+        ix: -1 + x,
+        iy: 6.25 + y,
+        iz: 0 + z,
         worldTheta: 0,
       })
     }else{
@@ -1115,6 +1114,7 @@
     if(subShape.length){
       subShape[0].baseVertices = structuredClone(baseShapeVerts)
       subShape[0].x = 0
+      subShape[0].z = pieceBank[subShape[0].id].z
       pieces.push({
         subShape: subShape[0],
         x: -1e5+1,
@@ -1220,9 +1220,11 @@
               y = C(p) * d
               shape.vertices[idx + 0] = x + ix
               shape.vertices[idx + 1] = y + iy + 8
-              shape.vertices[idx + 2] = (piece.subShape.baseVertices[idx2 + 2] + piece.subShape.z + piece.oz) * 10 + 2
+              //shape.vertices[idx + 2] = (piece.subShape.baseVertices[idx2 + 2] + piece.subShape.z + piece.oz) * 10 + 2
+              shape.vertices[idx + 2] = piece.subShape.baseVertices[idx2 + 2]  + piece.oz*10
             })
           })
+         
          
           renderer.Draw(shape)
           
