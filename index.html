@@ -80,7 +80,7 @@
       map: refTexture,
       playbackSpeed,
       theta: Math.PI/2,
-      value: 2
+      value: 1
     } },
   ]
   var boardShader = await Coordinates.BasicShader(renderer, shaderOptions)
@@ -934,38 +934,27 @@
   const CheckRows = () => {
     var ar = GetPieceCoords(centers[centers.length-1])
     ar.map(v=>{
-      //v.map(q=>{
-        SpawnSamplePiece(pieces[pieces.length-1].subShape.id,v[0]*2,v[1]*2-6,0)
-        SpawnSampleCenterPiece(pieces[pieces.length-1].subShape.id,v[0]*2,v[1]*2-6,0)
-      //})
+      SpawnSamplePiece(pieces[pieces.length-1].subShape.id,v[0]*2,v[1]*2-6,0)
+      SpawnSampleCenterPiece(pieces[pieces.length-1].subShape.id,v[0]*2,v[1]*2-6,0)
     })
     ReleasePiece(pieces[pieces.length-1])
     ReleaseCenter(centers[centers.length-1])
     
-    
-    /*
-    var a, x, y, z, toDel = []
-    var b = Array(50).fill().map(v=>Array(10).fill().map(q=>{
-      return { state: 0, idx: -1 }
-    }))
-    centers.map((v,i) =>{
-      if(i < centers.length){
-        a = GetPieceCoords(v)
-        a.map((q,j) => {
-          if(q[0]!=1e5){
-            b[-q[1]+10][q[0]+4].state = 1
-            b[-q[1]+10][q[0]+4].idx = i
-          }
-        })
+    var a = []
+    sampleCenters.map((sc, scIdx) => {
+      var l = GetPieceCoords(sc)
+      if(l[0] != 1e5){
+        a.push([...l[0], sc, samples[scIdx]])
       }
     })
-    var boardShape = shapes.filter(v=>v.name=='board')[0]
-    b.map((v, i) => {
-      if(v.filter((q,j)=>!!q.state).length == 10){
-        v.forEach((q, j)=>{
-          toDel.push(q.idx)
+    var l
+    for(var i = -23; i < 20; i++){
+      l=a.filter(v=>v[1]==i)
+      if(l.length) console.log(l, a)
+      if(l.length == 10){
+        l.map((q, j) => {
           x = (j-4.5)*2
-          y = (-i+8)*2
+          y = (i*2-4)
           z = -5
           p = Math.atan2(y,z) - renderer.pitch
           d = Math.hypot(y,z)
@@ -976,10 +965,11 @@
           x = S(p) * d
           z = C(p) * d
           SpawnFlash(x, y, z, .25, .1)
+          ReleaseSampleCenter(q[2])
+          ReleaseSample(q[3])
         })
       }
-    })
-    */
+    }
   }
   
   var flashes = []
@@ -1035,33 +1025,36 @@
 
   const ReleasePiece = piece => {
     var shape = shapes.filter(v=>v.name=='pieces')[0]
-    piece.subShape.x = 1e5    
-    var ox = piece.ox
-    var oy = piece.oy
-    var ix = piece.ix += (piece.ox - piece.ix) / 2
-    var iy = piece.iy += (piece.oy - piece.iy) / 2
-    p = Math.atan2(ix, iy) + piece.worldTheta
-    d = Math.hypot(ix, iy)
-    ix = S(p) * d
-    iy = C(p) * d
+    piece.subShape.x = 1e5
+    piece.subShape.y = -1e5
+    piece.subShape.z = -1e5
+    piece.subShape.baseVertices = structuredClone(baseShapeVerts)
     piece.subShape.vertIDs.map(idx => {
       var idx2 = idx % shape.stride
-      x = piece.subShape.baseVertices[idx2 + 0] + piece.subShape.x
-      y = piece.subShape.baseVertices[idx2 + 1] + piece.subShape.y - 8
-      p = Math.atan2(x, y) + piece.worldTheta
-      d = Math.hypot(x, y)
-      x = S(p) * d
-      y = C(p) * d
-      shape.vertices[idx + 0] = x + ix
-      shape.vertices[idx + 1] = y + iy + 8
-      shape.vertices[idx + 2] = (piece.subShape.baseVertices[idx2 + 2] + piece.subShape.z + piece.oz) * 10 + 2
+      shape.vertices[idx+0] = piece.subShape.baseVertices[idx2+0]
+      shape.vertices[idx+1] = piece.subShape.baseVertices[idx2+1]
+      shape.vertices[idx+2] = piece.subShape.baseVertices[idx2+2]
     })
     pieces = pieces.filter(v => v != piece)
   }
   
+  const ReleaseSample = sample => {
+    var shape = shapes.filter(v=>v.name=='samples')[0]
+    sample.subShape.baseVertices = structuredClone(baseSampleVerts)
+    sample.subShape.vertIDs.map(idx => {
+      var idx2 = idx % shape.stride
+      shape.vertices[idx+0] = sample.subShape.baseVertices[idx2+0]
+      shape.vertices[idx+1] = sample.subShape.baseVertices[idx2+1]
+      shape.vertices[idx+2] = sample.subShape.baseVertices[idx2+2]
+    })
+    samples = samples.filter(v => v != sample)
+  }
+  
   const ReleaseCenter = center => {
     var shape = shapes.filter(v=>v.name=='centers')[0]
-    center.subShape.x = 1e5    
+    center.subShape.x = 1e5
+    center.subShape.y = -1e5
+    center.subShape.z = -1e5
     var ox = center.ox
     var oy = center.oy
     var ix = center.ix += (center.ox - center.ix) / 2
@@ -1070,24 +1063,41 @@
     d = Math.hypot(ix, iy)
     ix = S(p) * d
     iy = C(p) * d
+    center.subShape.baseVertices = structuredClone(baseCenterVerts)
     center.subShape.vertIDs.map(idx => {
       var idx2 = idx % shape.stride
-      x = center.subShape.baseVertices[idx2 + 0] + center.subShape.x
-      y = center.subShape.baseVertices[idx2 + 1] + center.subShape.y - 8
-      p = Math.atan2(x, y) + center.worldTheta
-      d = Math.hypot(x, y)
-      x = S(p) * d
-      y = C(p) * d
-      shape.vertices[idx + 0] = x + ix
-      shape.vertices[idx + 1] = y + iy + 8
-      shape.vertices[idx + 2] = (center.subShape.baseVertices[idx2 + 2] + center.subShape.z + center.oz) * 10 + 2
+      shape.vertices[idx+0] = center.subShape.baseVertices[idx2+0]
+      shape.vertices[idx+1] = center.subShape.baseVertices[idx2+1]
+      shape.vertices[idx+2] = center.subShape.baseVertices[idx2+2]
     })
     centers = centers.filter(v => v != center)
   }
   
+  const ReleaseSampleCenter = sampleCenter => {
+    var shape = shapes.filter(v=>v.name=='sampleCenters')[0]
+    sampleCenter.subShape.x = 1e5
+    sampleCenter.subShape.y = -1e5
+    sampleCenter.subShape.z = -1e5
+    var ox = sampleCenter.ox
+    var oy = sampleCenter.oy
+    var ix = sampleCenter.ix += (sampleCenter.ox - sampleCenter.ix) / 2
+    var iy = sampleCenter.iy += (sampleCenter.oy - sampleCenter.iy) / 2
+    p = Math.atan2(ix, iy) + sampleCenter.worldTheta
+    d = Math.hypot(ix, iy)
+    ix = S(p) * d
+    iy = C(p) * d
+    sampleCenter.subShape.baseVertices = structuredClone(baseCenterVerts)
+    sampleCenter.subShape.vertIDs.map(idx => {
+      var idx2 = idx % shape.stride
+      shape.vertices[idx+0] = sampleCenter.subShape.baseVertices[idx2+0]
+      shape.vertices[idx+1] = sampleCenter.subShape.baseVertices[idx2+1]
+      shape.vertices[idx+2] = sampleCenter.subShape.baseVertices[idx2+2]
+    })
+    sampleCenters = sampleCenters.filter(v => v != sampleCenter)
+  }
+  
   
   const SpawnPiece = (id, x=0,y=0,z=0) => {
-    id = 1
     // centers
     var subShape = centersBank.filter((pc, idx) => {
       return pc.id == id && pc.x == 1e5
