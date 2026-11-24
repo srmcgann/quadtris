@@ -1194,6 +1194,12 @@
             })
           })
           renderer.Draw(shape)
+          if(Math.abs(boardTheta) > .001){
+            var theta = boardThetaInterval * (boardTheta > 0 ? -1: 1)
+            samples.map((v, i) => {
+              v.worldTheta += theta / 6
+            })
+          }
         break
         case 'pieces':
           pieces.map(piece => {
@@ -1223,7 +1229,6 @@
             })
           })
          
-          console.log(shape)
           renderer.Draw(shape)
           
           if(showDropLocation){
@@ -1267,10 +1272,8 @@
         case 'sampleCenters':
           if(Math.abs(boardTheta) > .001){
             var theta = boardThetaInterval * (boardTheta > 0 ? -1: 1)
-            centers.map((v, i) => {
-              if(i < centers.length - 1){
-                v.worldTheta += theta / 6
-              }
+            sampleCenters.map((v, i) => {
+              v.worldTheta += theta / 6
             })
           }
         break
