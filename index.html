@@ -187,11 +187,8 @@
       case 'left':
         var pc = centers[centers.length-1]
         var b = GetPieceCoords(pc)
-        
-        var pc = centers[centers.length-1]
-        var b = GetPieceCoords(pc)
-        for(var i = 0; i < centers.length-1; i ++){
-          var chk = GetPieceCoords(centers[i])
+        for(var i = 0; i < sampleCenters.length-1; i ++){
+          var chk = GetPieceCoords(sampleCenters[i])
           b.map(v1 => {
             chk.map(v2=>{
               if(v1[0] - 1 == v2[0] && v1[1] == v2[1]) clear = false
@@ -227,8 +224,8 @@
             centers[centers.length-1].ox += 2
             pc = centers[centers.length-1]
             b = GetPieceCoords(pc)
-            for(var i = 0; i < centers.length-1; i ++){
-              var chk = GetPieceCoords(centers[i])
+            for(var i = 0; i < sampleCenters.length-1; i ++){
+              var chk = GetPieceCoords(sampleCenters[i])
               b.map(v1 => {
                 chk.map(v2=>{
                   if(v1[0] + 1 == v2[0] && v1[1] == v2[1]) clear = false
@@ -240,8 +237,8 @@
               centers[centers.length-1].ox -= 2
             }
           }
-          for(var i = 0; i < centers.length-1; i ++){
-            var chk = GetPieceCoords(centers[i])
+          for(var i = 0; i < sampleCenters.length-1; i ++){
+            var chk = GetPieceCoords(sampleCenters[i])
             b.map(v1 => {
               chk.map(v2=>{
                 if(v1[0] + 1 == v2[0] && v1[1] == v2[1]) clear = false
@@ -253,8 +250,8 @@
             centers[centers.length-1].ox -= 2
           }
         }
-        for(var i = 0; i < centers.length-1; i ++){
-          var chk = GetPieceCoords(centers[i])
+        for(var i = 0; i < sampleCenters.length-1; i ++){
+          var chk = GetPieceCoords(sampleCenters[i])
           b.map(v1 => {
             chk.map(v2=>{
               if(v1[0] == v2[0] && v1[1] == v2[1]) clear = false
@@ -281,8 +278,8 @@
             centers[centers.length-1].ox -= 2
             pc = centers[centers.length-1]
             b = GetPieceCoords(pc)
-            for(var i = 0; i < centers.length-1; i ++){
-              var chk = GetPieceCoords(centers[i])
+            for(var i = 0; i < sampleCenters.length-1; i ++){
+              var chk = GetPieceCoords(sampleCenters[i])
               b.map(v1 => {
                 chk.map(v2=>{
                   if(v1[0] - 1 == v2[0] && v1[1] == v2[1]) clear = false
@@ -294,8 +291,8 @@
               centers[centers.length-1].ox += 2
             }
           }
-          for(var i = 0; i < centers.length-1; i ++){
-            var chk = GetPieceCoords(centers[i])
+          for(var i = 0; i < sampleCenters.length-1; i ++){
+            var chk = GetPieceCoords(sampleCenters[i])
             b.map(v1 => {
               chk.map(v2=>{
                 if(v1[0] - 1 == v2[0] && v1[1] == v2[1]) clear = false
@@ -307,8 +304,8 @@
             centers[centers.length-1].ox += 2
           }
         }
-        for(var i = 0; i < centers.length-1; i ++){
-          var chk = GetPieceCoords(centers[i])
+        for(var i = 0; i < sampleCenters.length-1; i ++){
+          var chk = GetPieceCoords(sampleCenters[i])
           b.map(v1 => {
             chk.map(v2=>{
               if(v1[0] == v2[0] && v1[1] == v2[1]) clear = false
@@ -326,8 +323,8 @@
       case 'right':
         var pc = centers[centers.length-1]
         var b = GetPieceCoords(pc)
-        for(var i = 0; i < centers.length-1; i ++){
-          var chk = GetPieceCoords(centers[i])
+        for(var i = 0; i < sampleCenters.length-1; i ++){
+          var chk = GetPieceCoords(sampleCenters[i])
           b.map(v1 => {
             chk.map(v2=>{
               if(v1[0] + 1 == v2[0] && v1[1] == v2[1]) clear = false
@@ -339,7 +336,6 @@
         })
       break
       case 'down':
-        console.log(centers)
         var pc = centers[centers.length-1]
         var b = GetPieceCoords(pc)
         for(var i = 0; i < sampleCenters.length-1; i ++){
@@ -1112,6 +1108,8 @@
       return pc.id == id && pc.x == 1e5
     })
     if(subShape.length){
+      var s = shapes.filter(v=>v.name=='pieces')[0]
+      s.vertices = structuredClone(baseShapeVerts)
       subShape[0].baseVertices = structuredClone(baseShapeVerts)
       subShape[0].x = 0
       subShape[0].z = pieceBank[subShape[0].id].z
@@ -1220,12 +1218,12 @@
               y = C(p) * d
               shape.vertices[idx + 0] = x + ix
               shape.vertices[idx + 1] = y + iy + 8
-              //shape.vertices[idx + 2] = (piece.subShape.baseVertices[idx2 + 2] + piece.subShape.z + piece.oz) * 10 + 2
-              shape.vertices[idx + 2] = piece.subShape.baseVertices[idx2 + 2]  + piece.oz*10
+              shape.vertices[idx + 2] = -.25
+              //(piece.subShape.baseVertices[idx2 + 2] + piece.subShape.z + piece.oz) * 10
             })
           })
          
-         
+          console.log(shape)
           renderer.Draw(shape)
           
           if(showDropLocation){
