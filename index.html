@@ -362,7 +362,7 @@
   var boardThetaInterval = Math.PI/3
   var boardTheta = 0
   
-  var iPc = 100
+  var iPc = 200
   var level = 1
 
   const SetTexture = (shapeName, url) => {
@@ -554,7 +554,7 @@
     }
   })
   
-  var sampleBank = Array(7*iPc*4).fill().map((v, i) => {
+  var sampleBank = Array(iPc*4*10).fill().map((v, i) => {
     return{
       id: i%7,
       x: 1e5,
@@ -575,7 +575,7 @@
     }
   })
   
-  var sampleCentersBank = Array(7*iPc*4).fill().map((v, i) => {
+  var sampleCentersBank = Array(iPc*4*10).fill().map((v, i) => {
     return{
       id: i%7,
       x: 1e5,
@@ -643,7 +643,7 @@
         pieceBank[i].y = pieceBank[i%7].y
         pieceBank[i].z = pieceBank[i%7].z
         pieceBank[i].vertIDs = structuredClone(pieceBank[i%7].vertIDs).map(v => {
-          return v + res.stride * ((i / 7 | 0)-0)
+          return v + res.stride * ((i/7|0)+1)
         })
       }
       
@@ -659,10 +659,10 @@
   })
   
   var baseSampleVerts
-  var pointArray = Array(iPc*7*4).fill().map((v,i) => [0,0,0])
+  var pointArray = Array(iPc*4).fill().map((v,i) => [0,0,0])
   var geoOptions = {
     shapeType: 'obj',
-    url: 'https://srmcgann.github.io/quadtris/samplePieces.obj',
+    url: 'https://srmcgann.github.io/quadtris/samplePieces.obj?2',
     map: tetraminoTexture,
     name: 'samples',
     //disableDepthTest: true,
@@ -673,6 +673,7 @@
     colorMix: 0,
   }
   await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+    console.log(geometry)
     await Coordinates.ShapeFromArray(geometry, pointArray).then(async res =>{
       res.isShapeArray = false
       var zSpacing = []
@@ -710,15 +711,16 @@
         }
       }
       
-      for(var i = 7; i < iPc*7*4; i++){
+      for(var i = 7; i < iPc*4*10; i++){
         sampleBank[i].x = sampleBank[i%7].x
         sampleBank[i].y = sampleBank[i%7].y
         sampleBank[i].z = sampleBank[i%7].z
         sampleBank[i].vertIDs = structuredClone(sampleBank[i%7].vertIDs).map(v => {
-          return v + res.stride * ((i / 7 | 0)-0)
+          return v + res.stride * ((i/7|0)+1)
         })
       }
       
+      console.log(res.stride, res.vstate.length)
       for(var i = 0 ; i < res.vstate.length; i += 3){
         res.vertices[i+0] += 1e5
         res.vertices[i+1] += -1e5
@@ -784,7 +786,7 @@
         centersBank[i].y = centersBank[i%7].y
         centersBank[i].z = centersBank[i%7].z
         centersBank[i].vertIDs = structuredClone(centersBank[i%7].vertIDs).map(v => {
-          return v + res.stride * ((i / 7 | 0)-0)
+          return v + res.stride * ((i/7|0)+1)
         })
       }
       
@@ -799,7 +801,7 @@
   })
   
   var baseSampleCenterVerts
-  var pointArray = Array(iPc*7*4).fill().map((v,i) => [0,0,0])
+  var pointArray = Array(iPc*4).fill().map((v,i) => [0,0,0])
   var geoOptions = {
     shapeType: 'obj',
     url: 'https://srmcgann.github.io/quadtris/sampleCenters.obj',
@@ -847,12 +849,12 @@
         }
       }
       
-      for(var i = 7; i < iPc*7*4; i++){
+      for(var i = 7; i < iPc*4*10; i++){
         sampleCentersBank[i].x = sampleCentersBank[i%7].x
         sampleCentersBank[i].y = sampleCentersBank[i%7].y
         sampleCentersBank[i].z = sampleCentersBank[i%7].z
         sampleCentersBank[i].vertIDs = structuredClone(sampleCentersBank[i%7].vertIDs).map(v => {
-          return v + res.stride * ((i / 7 | 0)-0)
+          return v + res.stride * ((i/7|0)+1)
         })
       }
       
@@ -1335,7 +1337,7 @@
           renderer.Draw(shape)
         break
         default:
-          renderer.Draw(shape)
+          //renderer.Draw(shape)
         break
       }
     })
