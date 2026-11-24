@@ -362,7 +362,7 @@
   var boardThetaInterval = Math.PI/3
   var boardTheta = 0
   
-  var iPc = 50
+  var iPc = 100
   var level = 1
 
   const SetTexture = (shapeName, url) => {
@@ -543,13 +543,13 @@
     await backgroundShader.ConnectGeometry(geometry)
   })
   
-  var pointArray = Array(iPc).fill().map((v,i) => [0,0,0])
-  var pieceBank = Array(7*iPc).fill().map((v, i) => {
+  var pointArray = Array(7).fill().map((v,i) => [0,0,0])
+  var pieceBank = Array(7).fill().map((v, i) => {
     return{
       id: i%7,
       x: 1e5,
-      y: 0,
-      z: 0,
+      y: -1e5,
+      z: -1e5,
       vertIDs: [],
     }
   })
@@ -558,18 +558,18 @@
     return{
       id: i%7,
       x: 1e5,
-      y: 0,
-      z: 0,
+      y: -1e5,
+      z: -1e5,
       vertIDs: [],
     }
   })
   
-  var centersBank = Array(7*iPc).fill().map((v, i) => {
+  var centersBank = Array(7).fill().map((v, i) => {
     return{
       id: i%7,
       x: 1e5,
-      y: 0,
-      z: 0,
+      y: -1e5,
+      z: -1e5,
       vertIDs: [],
       vertices: [],
     }
@@ -579,8 +579,8 @@
     return{
       id: i%7,
       x: 1e5,
-      y: 0,
-      z: 0,
+      y: -1e5,
+      z: -1e5,
       vertIDs: [],
       vertices: [],
     }
@@ -602,6 +602,7 @@
   }
   await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
     await Coordinates.ShapeFromArray(geometry, pointArray).then(async res => {
+      res.isShapeArray = false
       var zSpacing = []
       var sp = .5
       for(var i = 0; i < 7; i ++){
@@ -637,7 +638,7 @@
         }
       }
       
-      for(var i = 7; i < iPc*7; i++){
+      for(var i = 7; i < 7; i++){
         pieceBank[i].x = pieceBank[i%7].x
         pieceBank[i].y = pieceBank[i%7].y
         pieceBank[i].z = pieceBank[i%7].z
@@ -648,8 +649,8 @@
       
       for(var i = 0 ; i < res.vstate.length; i += 3){
         res.vertices[i+0] += 1e5
-        res.vertices[i+1] += 0
-        res.vertices[i+2] -= 0
+        res.vertices[i+1] += -1e5
+        res.vertices[i+2] += -1e5
       }
       shapes.push(res)
       baseShapeVerts = structuredClone(res.vertices.slice(0, res.stride))
@@ -658,6 +659,7 @@
   })
   
   var baseSampleVerts
+  var pointArray = Array(iPc*7*4).fill().map((v,i) => [0,0,0])
   var geoOptions = {
     shapeType: 'obj',
     url: 'https://srmcgann.github.io/quadtris/samplePieces.obj',
@@ -672,6 +674,7 @@
   }
   await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
     await Coordinates.ShapeFromArray(geometry, pointArray).then(async res =>{
+      res.isShapeArray = false
       var zSpacing = []
       var sp = .5
       for(var i = 0; i < 7; i ++){
@@ -718,8 +721,8 @@
       
       for(var i = 0 ; i < res.vstate.length; i += 3){
         res.vertices[i+0] += 1e5
-        res.vertices[i+1] += 0
-        res.vertices[i+2] -= 0
+        res.vertices[i+1] += -1e5
+        res.vertices[i+2] += -1e5
       }
       shapes.push(res)
       baseSampleVerts = structuredClone(res.vertices.slice(0, res.stride))
@@ -728,6 +731,7 @@
   })
   
   var baseCenterVerts
+  var pointArray = Array(7).fill().map((v,i) => [0,0,0])
   var geoOptions = {
     shapeType: 'obj',
     url: 'https://srmcgann.github.io/quadtris/centers.obj',
@@ -739,6 +743,7 @@
   }
   await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
     await Coordinates.ShapeFromArray(geometry, pointArray).then(async res =>{
+      res.isShapeArray = false
       var zSpacing = []
       var sp = .5
       for(var i = 0; i < 7; i ++){
@@ -774,7 +779,7 @@
         }
       }
       
-      for(var i = 7; i < iPc*7; i++){
+      for(var i = 7; i < 7; i++){
         centersBank[i].x = centersBank[i%7].x
         centersBank[i].y = centersBank[i%7].y
         centersBank[i].z = centersBank[i%7].z
@@ -785,8 +790,8 @@
       
       for(var i = 0 ; i < res.vstate.length; i += 3){
         res.vertices[i+0] += 1e5
-        res.vertices[i+1] += 0
-        res.vertices[i+2] -= 0
+        res.vertices[i+1] += -1e5
+        res.vertices[i+2] += -1e5
       }
       shapes.push(res)
       baseCenterVerts = structuredClone(res.vertices.slice(0, res.stride))
@@ -794,6 +799,7 @@
   })
   
   var baseSampleCenterVerts
+  var pointArray = Array(iPc*7*4).fill().map((v,i) => [0,0,0])
   var geoOptions = {
     shapeType: 'obj',
     url: 'https://srmcgann.github.io/quadtris/sampleCenters.obj',
@@ -805,6 +811,7 @@
   }
   await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
     await Coordinates.ShapeFromArray(geometry, pointArray).then(async res =>{
+      res.isShapeArray = false
       var zSpacing = []
       var sp = .5
       for(var i = 0; i < 7; i ++){
@@ -851,8 +858,8 @@
       
       for(var i = 0 ; i < res.vstate.length; i += 3){
         res.vertices[i+0] += 1e5
-        res.vertices[i+1] += 0
-        res.vertices[i+2] -= 0
+        res.vertices[i+1] += -1e5
+        res.vertices[i+2] += -1e5
       }
       shapes.push(res)
       baseSampleCenterVerts = structuredClone(res.vertices.slice(0, res.stride))
@@ -988,8 +995,8 @@
       samples.push({
         subShape: subShape[0],
         x: -1e5+1,
-        y: 0,
-        z: subShape[0].z -.2,
+        y: 1e5,
+        z: subShape[0].z -.2+1e5,
         ox: -1 + x,
         oy: 6.25 + y,
         oz: 0 + z,
@@ -1011,8 +1018,8 @@
       sampleCenters.push({
         subShape: subShape[0],
         x: -1e5+1,
-        y: 0,
-        z: subShape[0].z -.2,
+        y: 1e5,
+        z: subShape[0].z -.2+1e5,
         ox: -1 + x,
         oy: 6.25 + y,
         oz: 0 + z,
@@ -1078,7 +1085,7 @@
   
   
   const SpawnPiece = (id, x=0,y=0,z=0) => {
-  
+    id = 1
     // centers
     var subShape = centersBank.filter((pc, idx) => {
       return pc.id == id && pc.x == 1e5
@@ -1089,8 +1096,8 @@
       centers.push({
         subShape: subShape[0],
         x: -1e5+1,
-        y: 0,
-        z: subShape[0].z -.2,
+        y: 1e5,
+        z: subShape[0].z -.2+1e5,
         ox: -1 + x,
         oy: 6.25 + y,
         oz: 0 + z,
@@ -1116,8 +1123,8 @@
       pieces.push({
         subShape: subShape[0],
         x: -1e5+1,
-        y: 0,
-        z: subShape[0].z -.2,
+        y: 1e5,
+        z: subShape[0].z -.2+1e5,
         ox: -1 + x,
         oy: 6.25 + y,
         oz: 0 + z,
