@@ -25,7 +25,8 @@
   
   //var refTexture = 'https://skyboxes2.verymad.net/images/stars2.jpg'
   //var refTexture = 'https://skyboxes2.verymad.net/videos/starfield.mp4'
-  var refTexture = 'https://srmcgann.github.io/skyboxes2/HDRI/stars.jpg'
+  var refTexture = 'https://skyboxes2.verymad.net/images/grumpy%20derelict%20cat.png'
+  var orefTexture = refTexture
   var playbackSpeed = .75
   
   var S = Math.sin
@@ -60,7 +61,7 @@
   var shader = await Coordinates.BasicShader(renderer, shaderOptions)
 
   var shaderOptions = [
-    {lighting: {type: 'ambientLight', value: .5}},
+    {lighting: {type: 'ambientLight', value: 1}},
     { uniform: {
       type: 'phong',
       value: 0
@@ -80,13 +81,13 @@
       map: refTexture,
       playbackSpeed,
       theta: Math.PI/2,
-      value: 1
+      value: .25
     } },
   ]
   var boardShader = await Coordinates.BasicShader(renderer, shaderOptions)
 
   var shaderOptions = [
-    {lighting: {type: 'ambientLight', value: 1.3}},
+    {lighting: {type: 'ambientLight', value: 1}},
     { uniform: {
       type: 'phong',
       value: 0
@@ -423,13 +424,13 @@
             shapes.filter(v=>v.name=='board')[0].color = 0x080010
           break
           case 53:
-            SetRefTexture('https://srmcgann.github.io/skyboxes2/HDRI/1.jpg', 1)
+            SetRefTexture(orefTexture, 1)
           break
           case 54:
-            SetRefTexture('https://skyboxes2.verymad.net/images/treehouses.jpg', 1)
+            SetRefTexture('https://srmcgann.github.io/skyboxes2/HDRI/1.jpg', 1)
           break
           case 55:
-            SetRefTexture('https://srmcgann.github.io/skyboxes3/HDRI/skymaze.jpg', 1)
+            SetRefTexture('https://srmcgann.github.io/skyboxes2/HDRI/nebula.jpg', 1)
           break
           case 56:
             SetRefTexture('https://srmcgann.github.io/skyboxes7/HDRI/quickgrid.png', 1)
@@ -902,7 +903,7 @@
   var geoOptions = {
     shapeType: 'sprite',
     name: 'flashes',
-    map: 'https://srmcgann.github.io/Coordinates/resources/stars/megastar.png',
+    map: 'https://srmcgann.github.io/Coordinates/resources/stars/star4.png',
     size: 30,
     colorMix: 0,
   }
