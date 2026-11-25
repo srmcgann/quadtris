@@ -1,5 +1,6 @@
 <!--
   to-do
+  * border / dashboard
   * score
   * speed increase / levels
   * death screen / reset funcion
@@ -28,13 +29,11 @@
 
   var rendererOptions = {
     ambientLight: .5, margin: 0,
-    fov: 800, width: 1920, height: 1080,
+    fov: 500, width: 1080, height: 1080,
   }
   var renderer = await Coordinates.Renderer(rendererOptions)
   
-  //var refTexture = 'https://skyboxes2.verymad.net/images/stars2.jpg'
-  //var refTexture = 'https://skyboxes2.verymad.net/videos/starfield.mp4'
-  var refTexture = 'https://srmcgann.github.io/Coordinates/resources/callibration equirectangular image.png'
+  var refTexture = 'https://srmcgann.github.io/skyboxes/HDRI/28.jpg'
   var orefTexture = refTexture
 
   var playbackSpeed = .75
@@ -54,7 +53,7 @@
   Coordinates.AnimationLoop(renderer, 'Draw')
 
   var shaderOptions = [
-    {lighting: {type: 'ambientLight', value: .4}},
+    {lighting: {type: 'ambientLight', value: .8}},
     { uniform: {
       type: 'phong',
       value: .05
@@ -69,7 +68,7 @@
     } },
     { uniform: {
       type: 'refraction2',
-      angleOfRefraction: 0,
+      angleOfRefraction: .25,
       map: refTexture,
       playbackSpeed,
       enabled: true,
@@ -80,7 +79,7 @@
   var shader = await Coordinates.BasicShader(renderer, shaderOptions)
 
   var shaderOptions = [
-    {lighting: {type: 'ambientLight', value: 1}},
+    {lighting: {type: 'ambientLight', value: 1.5}},
     { uniform: {
       type: 'phong',
       value: 0
@@ -96,17 +95,17 @@
     } },
     { uniform: {
       type: 'refraction2',
-      angleOfRefraction: 5,
+      angleOfRefraction: 2.5,
       map: refTexture,
       playbackSpeed,
       theta: 0,
-      value: 1.25
+      value: 2
     } },
   ]
   var boardShader = await Coordinates.BasicShader(renderer, shaderOptions)
 
   var shaderOptions = [
-    {lighting: {type: 'ambientLight', value: 1}},
+    {lighting: {type: 'ambientLight', value: 1.25}},
     { uniform: {
       type: 'phong',
       value: 0
@@ -433,7 +432,7 @@
               shapes.filter(v=>v.name=='board')[0].color =
                    Coordinates.HSVToHex(0,0,0)
             }else{
-              SetRefTexture(orefTexture, 1)
+              SetRefTexture(orefTexture, 1.25)
             }
           break
           case 50:
@@ -453,7 +452,7 @@
               shapes.filter(v=>v.name=='board')[0].color =
                    Coordinates.HSVToHex(360/9*(key-49),1,.1)
             }else{
-              SetRefTexture('https://skyboxes2.verymad.net/images/grumpy%20derelict%20cat.png', 1)
+              SetRefTexture('https://srmcgann.github.io/skyboxes/HDRI/9.jpg', 1)
             }
           break
           case 52:
@@ -523,7 +522,7 @@
               shapes.filter(v=>v.name=='board')[0].color =
                    Coordinates.HSVToHex(360/9*(key-49),1,.1)
             }else{
-              SetRefTexture('https://srmcgann.github.io/skyboxes/HDRI/28.jpg', 1)
+              SetRefTexture('https://skyboxes2.verymad.net/images/grumpy%20derelict%20cat.png', 1)
             }
           break
           case 65: // a
@@ -543,15 +542,16 @@
             }
           break
           case 32: // space
-            if(keyTimers[key] < t){
-              while(Test('down')){
-                pieces[pieces.length-1].oy -= 2
-                centers[centers.length-1].oy -= 2
+            if(Math.abs(boardTheta) < .001){
+              if(keyTimers[key] < t){
+                while(Test('down')){
+                  pieces[pieces.length-1].oy -= 2
+                  centers[centers.length-1].oy -= 2
+                }
+                CheckRows()
+                SpawnPiece(Rn() * 7 | 0)
+                keyTimers[key] = t + keyTimerInterval * 2
               }
-              
-              CheckRows()
-              SpawnPiece(Rn() * 7 | 0)
-              keyTimers[key] = t + keyTimerInterval * 2
             }
           break
           case 37: // left arrow
@@ -574,18 +574,20 @@
             }
           break
           case 40: // down arrow
-            if(keyTimers[key] < t){
-              if(Test('down')){
-                pieces[pieces.length-1].oy -= 2
-                centers[centers.length-1].oy -= 2
-                keyTimers[key] = t + keyTimerInterval * (t-keyTimers[key] > keyTimerInterval? 1 : .1)
-              }else{
-                if(t-keyTimers[key] > keyTimerInterval){
-                  placePieceTimer = t + 30
+            if(Math.abs(boardTheta) < .001){
+              if(keyTimers[key] < t){
+                if(Test('down')){
+                  pieces[pieces.length-1].oy -= 2
+                  centers[centers.length-1].oy -= 2
+                  keyTimers[key] = t + keyTimerInterval * (t-keyTimers[key] > keyTimerInterval? 1 : .1)
                 }else{
-                  if(placePieceTimer < t){
-                    CheckRows()
-                    SpawnPiece(Rn() * 7 | 0)
+                  if(t-keyTimers[key] > keyTimerInterval){
+                    placePieceTimer = t + 30
+                  }else{
+                    if(placePieceTimer < t){
+                      CheckRows()
+                      SpawnPiece(Rn() * 7 | 0)
+                    }
                   }
                 }
               }
@@ -673,7 +675,7 @@
     }
   })
   
-  var tetraminoTexture = 'https://srmcgann.github.io/quadtris/tetraminoes3.png?2'
+  var tetraminoTexture = 'https://srmcgann.github.io/quadtris/tetraminoes4.png'
   var baseShapeVerts
   var geoOptions = {
     shapeType: 'obj',
@@ -685,6 +687,7 @@
     scaleY: -.95,
     scaleZ: .25,
     objZ: -.25,
+    cullFace: 'back',
     colorMix: 0,
   }
   await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
@@ -757,6 +760,7 @@
     scaleY: -.95,
     scaleZ: .25,
     objZ: -.25,
+    cullFace: '',
     colorMix: 0,
   }
   await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
@@ -1000,19 +1004,24 @@
   })
  
  
+  var baseSpriteVerts
   var geoOptions = {
     shapeType: 'rect',
     map: 'https://srmcgann.github.io/Coordinates/resources/stars/star1.png',
     name: 'sprite',
-    y: 9.5,
-    roll: Math.PI/4,
-    disableDepthTest: false,
-    size: 300,
-    z: 40,
-    alpha: .9,
+    roll: 0,
+    disableDepthTest: true,
+    size: 100,
+    z: 2,
+    alpha: .5,
     colorMix: 0,
   }
   if(1)await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+    for(var i = 0; i < geometry.vertices.length; i += 3){
+      geometry.vertices[i+0] = geometry.vertices[i+0] + 2 / 3 * 1
+      geometry.vertices[i+1] = geometry.vertices[i+1] - 3 / 3 * 1
+    }
+    baseSpriteVerts = structuredClone(geometry.vertices)
     shapes.push(geometry)
     await spriteShader.ConnectGeometry(geometry)
   })
@@ -1039,8 +1048,8 @@
       if(l.length == 10){
         l.map((q, j) => {
           x = (j-4.5)*2
-          y = (i*2-4)
-          z = -5
+          y = (i*2-9.25)
+          z = 0
           p = Math.atan2(y,z) - renderer.pitch
           d = Math.hypot(y,z)
           y = S(p) * d
@@ -1251,7 +1260,7 @@
         worldTheta: 0,
       })
     }
-    SpawnFlash(-.5,-1,0,.5,.25)
+    SpawnFlash(-.5, -1, 0, .5, .25)
   }
   
   if(0) Coordinates.LoadFPSControls(renderer, {
@@ -1268,16 +1277,18 @@
   window.Draw = () => {
     var t = renderer.frameCount / 60
     
-    renderer.yaw = S(t/8)/32
-    renderer.pitch = C(t/6)/16
+    //renderer.yaw = S(t/2)/32
+    //renderer.pitch = C(t/2)/32
     
     if(!((t*60|0)%(240/(1+level/4)|0))){
-      if(Test('down')){
-        pieces[pieces.length-1].oy -= 2
-        centers[centers.length-1].oy -= 2
-      }else{
-        CheckRows()
-        SpawnPiece(Rn() * 7 | 0)
+      if(Math.abs(boardTheta) < .001){
+        if(Test('down')){
+          pieces[pieces.length-1].oy -= 2
+          centers[centers.length-1].oy -= 2
+        }else{
+          CheckRows()
+          SpawnPiece(Rn() * 7 | 0)
+        }
       }
     }
     
@@ -1298,8 +1309,8 @@
             sample.subShape.z = sample.z
             var ox = sample.ox
             var oy = sample.oy
-            var ix = sample.ix += (sample.ox - sample.ix) / 2
-            var iy = sample.iy += (sample.oy - sample.iy) / 2
+            var ix = sample.ix += (sample.ox - sample.ix) / 8
+            var iy = sample.iy += (sample.oy - sample.iy) / 8
             p = Math.atan2(ix, iy) + sample.worldTheta
             d = Math.hypot(ix, iy)
             ix = S(p) * d
@@ -1314,7 +1325,8 @@
               y = C(p) * d
               shape.vertices[idx + 0] = x + ix
               shape.vertices[idx + 1] = y + iy + 8
-              shape.vertices[idx + 2] = (sample.subShape.baseVertices[idx2 + 2] + sample.subShape.z + sample.oz) * 10 + 2
+              shape.vertices[idx + 2] = -.25
+              //shape.vertices[idx + 2] = (sample.subShape.baseVertices[idx2 + 2] + sample.subShape.z + sample.oz) * 10 + 2
             })
           })
           renderer.Draw(shape)
@@ -1332,8 +1344,8 @@
             piece.subShape.z = piece.z
             var ox = piece.ox
             var oy = piece.oy
-            var ix = piece.ix += (piece.ox - piece.ix) / 2
-            var iy = piece.iy += (piece.oy - piece.iy) / 2
+            var ix = piece.ix += (piece.ox - piece.ix) / 8
+            var iy = piece.iy += (piece.oy - piece.iy) / 8
             p = Math.atan2(ix, iy) + piece.worldTheta
             d = Math.hypot(ix, iy)
             ix = S(p) * d
@@ -1447,8 +1459,29 @@
           renderer.Draw(shape)
         break
         case 'sprite':
-          shape.roll += .003
+        
+          shape.roll += .0015
+          shape.disableDepthTest = false
+          shape.shader.datasets[0].optionalLighting[0].value = 2
+          shape.z = 2
+          shape.y = 10
+          for(var i = 0; i < shape.vertices.length; i += 3){
+            shape.vertices[i+0] = baseSpriteVerts[i+0]*1.5
+            shape.vertices[i+1] = baseSpriteVerts[i+1]*1.5
+            shape.vertices[i+2] = baseSpriteVerts[i+2]*1.5
+          }
           renderer.Draw(shape)
+          shape.shader.datasets[0].optionalLighting[0].value = 1
+          shape.z = -.1
+          shape.y = 9.5
+          //shape.roll += Math.PI/4
+          for(var i = 0; i < shape.vertices.length; i += 3){
+            shape.vertices[i+0] = baseSpriteVerts[i+0]/2
+            shape.vertices[i+1] = baseSpriteVerts[i+1]/2
+            shape.vertices[i+2] = baseSpriteVerts[i+2]/2
+          }
+          renderer.Draw(shape)
+          //shape.roll -= Math.PI/4
         break
         default:
           //renderer.Draw(shape)
