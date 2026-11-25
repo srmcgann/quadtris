@@ -1,3 +1,12 @@
+<!--
+  to-do
+  * score
+  * speed increase / levels
+  * death screen / reset funcion
+  * preview piece(s)
+  * powerups / inconveniences (random?)
+  * themes (textures / colors / monochrome)
+-->
 <!DOCTYPE html>
 <html>
   <head>
@@ -25,8 +34,9 @@
   
   //var refTexture = 'https://skyboxes2.verymad.net/images/stars2.jpg'
   //var refTexture = 'https://skyboxes2.verymad.net/videos/starfield.mp4'
-  var refTexture = 'https://srmcgann.github.io/Coordinates/resources/flat_grey.jpg'
+  var refTexture = 'https://srmcgann.github.io/Coordinates/resources/callibration equirectangular image.png'
   var orefTexture = refTexture
+
   var playbackSpeed = .75
   
   var S = Math.sin
@@ -44,7 +54,7 @@
   Coordinates.AnimationLoop(renderer, 'Draw')
 
   var shaderOptions = [
-    {lighting: {type: 'ambientLight', value: .25}},
+    {lighting: {type: 'ambientLight', value: .4}},
     { uniform: {
       type: 'phong',
       value: .05
@@ -54,17 +64,17 @@
       map: refTexture,
       playbackSpeed,
       enabled: false,
-      theta: Math.PI/2,
+      theta: 0,
       value: .05
     } },
     { uniform: {
       type: 'refraction2',
-      angleOfRefraction: -1,
+      angleOfRefraction: 0,
       map: refTexture,
       playbackSpeed,
       enabled: true,
-      theta: Math.PI/2,
-      value: 1.5
+      theta: 0,
+      value: .5
     } },
   ]
   var shader = await Coordinates.BasicShader(renderer, shaderOptions)
@@ -86,17 +96,17 @@
     } },
     { uniform: {
       type: 'refraction2',
-      angleOfRefraction: -1,
+      angleOfRefraction: 5,
       map: refTexture,
       playbackSpeed,
-      theta: Math.PI/2,
-      value: 1
+      theta: 0,
+      value: 1.25
     } },
   ]
   var boardShader = await Coordinates.BasicShader(renderer, shaderOptions)
 
   var shaderOptions = [
-    {lighting: {type: 'ambientLight', value: .25}},
+    {lighting: {type: 'ambientLight', value: 1}},
     { uniform: {
       type: 'phong',
       value: 0
@@ -411,12 +421,6 @@
     refTexture = texture
   }
   
-  var texturedShape = [
-    'board',
-    'pieces',
-    'samples',
-  ]
-  
   const DoKeys = () =>{
     var t = renderer.frameCount / 60
     keys.map((state, key) => {
@@ -424,110 +428,100 @@
         switch(key){
           case 49:
             if(keys[16]){
-              texturedShapesList.forEach(texturedShape => {
-                SetTexture(texturedShape.name, 'https://srmcgann.github.io/quadtris/board_grey.png')
-                shapes.filter(v=>v.name==texturedShape.name)[0].color =
-                       Coordinates.HSVToHex(0,0,.075)
-              })
+              SetTexture('board',
+                  'https://srmcgann.github.io/quadtris/board_grey.png')
+              shapes.filter(v=>v.name=='board')[0].color =
+                   Coordinates.HSVToHex(0,0,0)
             }else{
-              SetRefTexture(orefTexture, .25)
+              SetRefTexture(orefTexture, 1)
             }
           break
           case 50:
             if(keys[16]){
-              texturedShapesList.forEach(texturedShape => {
-                SetTexture(texturedShape.name, 'https://srmcgann.github.io/quadtris/board_grey.png')
-                shapes.filter(v=>v.name==texturedShape.name)[0].color =
-                       Coordinates.HSVToHex(0,0,.075)
-              })
+              SetTexture('board',
+                  'https://srmcgann.github.io/quadtris/board_grey.png')
+              shapes.filter(v=>v.name=='board')[0].color =
+                   Coordinates.HSVToHex(360/9*(key-49),1,.1)
             }else{
               SetRefTexture('https://srmcgann.github.io/Coordinates/resources/equisky_ultra.png', 1)
             }
           break
           case 51:
             if(keys[16]){
-              texturedShapesList.forEach(texturedShape => {
-                SetTexture(texturedShape.name, 'https://srmcgann.github.io/quadtris/board_grey.png')
-                shapes.filter(v=>v.name==texturedShape.name)[0].color =
-                       Coordinates.HSVToHex(0,0,.075)
-              })
+              SetTexture('board',
+                  'https://srmcgann.github.io/quadtris/board_grey.png')
+              shapes.filter(v=>v.name=='board')[0].color =
+                   Coordinates.HSVToHex(360/9*(key-49),1,.1)
             }else{
               SetRefTexture('https://skyboxes2.verymad.net/images/grumpy%20derelict%20cat.png', 1)
             }
           break
           case 52:
             if(keys[16]){
-              texturedShapesList.forEach(texturedShape => {
-                SetTexture(texturedShape.name, 'https://srmcgann.github.io/quadtris/board_grey.png')
-                shapes.filter(v=>v.name==texturedShape.name)[0].color =
-                       Coordinates.HSVToHex(0,0,.075)
-              })
+              SetTexture('board',
+                  'https://srmcgann.github.io/quadtris/board_grey.png')
+              shapes.filter(v=>v.name=='board')[0].color =
+                   Coordinates.HSVToHex(360/9*(key-49),1,.1)
             }else{
               SetRefTexture('https://skyboxes2.verymad.net/images/6.jpg', 1)
             }
           break
           case 53:
             if(keys[16]){
-              texturedShapesList.forEach(texturedShape => {
-                SetTexture(texturedShape.name, 'https://srmcgann.github.io/quadtris/board_grey.png')
-                shapes.filter(v=>v.name==texturedShape.name)[0].color =
-                       Coordinates.HSVToHex(0,0,.075)
-              })
+              SetTexture('board',
+                  'https://srmcgann.github.io/quadtris/board_grey.png')
+              shapes.filter(v=>v.name=='board')[0].color =
+                   Coordinates.HSVToHex(360/9*(key-49),1,.1)
             }else{
               SetRefTexture('https://skyboxes2.verymad.net/images/alices.jpg', 1)
             }
           break
           case 54:
             if(keys[16]){
-              texturedShapesList.forEach(texturedShape => {
-                SetTexture(texturedShape.name, 'https://srmcgann.github.io/quadtris/board_grey.png')
-                shapes.filter(v=>v.name==texturedShape.name)[0].color =
-                       Coordinates.HSVToHex(0,0,.075)
-              })
+              SetTexture('board',
+                  'https://srmcgann.github.io/quadtris/board_grey.png')
+              shapes.filter(v=>v.name=='board')[0].color =
+                   Coordinates.HSVToHex(360/9*(key-49),1,.1)
             }else{
               SetRefTexture('https://srmcgann.github.io/skyboxes2/HDRI/1.jpg', 1)
             }
           break
           case 55:
             if(keys[16]){
-              texturedShapesList.forEach(texturedShape => {
-                SetTexture(texturedShape.name, 'https://srmcgann.github.io/quadtris/board_grey.png')
-                shapes.filter(v=>v.name==texturedShape.name)[0].color =
-                       Coordinates.HSVToHex(0,0,.075)
-              })
+              SetTexture('board',
+                  'https://srmcgann.github.io/quadtris/board_grey.png')
+              shapes.filter(v=>v.name=='board')[0].color =
+                   Coordinates.HSVToHex(360/9*(key-49),1,.1)
             }else{
-              SetRefTexture('https://srmcgann.github.io/skyboxes/HDRI/18.jpg', 1.25)
+              SetRefTexture('https://srmcgann.github.io/skyboxes3/HDRI/doommaze.jpg', 1.25)
             }
           break
           case 56:
             if(keys[16]){
-              texturedShapesList.forEach(texturedShape => {
-                SetTexture(texturedShape.name, 'https://srmcgann.github.io/quadtris/board_grey.png')
-                shapes.filter(v=>v.name==texturedShape.name)[0].color =
-                       Coordinates.HSVToHex(0,0,.075)
-              })
+              SetTexture('board',
+                  'https://srmcgann.github.io/quadtris/board_grey.png')
+              shapes.filter(v=>v.name=='board')[0].color =
+                   Coordinates.HSVToHex(360/9*(key-49),1,.1)
             }else{
               SetRefTexture('https://srmcgann.github.io/Coordinates/resources/bumpmap_equirectangular_po2.jpg', 1)
             }
           break
           case 57:
             if(keys[16]){
-              texturedShapesList.forEach(texturedShape => {
-                SetTexture(texturedShape.name, 'https://srmcgann.github.io/quadtris/board_grey.png')
-                shapes.filter(v=>v.name==texturedShape.name)[0].color =
-                       Coordinates.HSVToHex(0,0,.075)
-              })
+              SetTexture('board',
+                  'https://srmcgann.github.io/quadtris/board_grey.png')
+              shapes.filter(v=>v.name=='board')[0].color =
+                   Coordinates.HSVToHex(360/9*(key-49),1,.1)
             }else{
               SetRefTexture('https://srmcgann.github.io/skyboxes3/HDRI/angels.jpg', 1)
             }
           break
           case 48:
             if(keys[16]){
-              texturedShapesList.forEach(texturedShape => {
-                SetTexture(texturedShape.name, 'https://srmcgann.github.io/quadtris/board_grey.png')
-                shapes.filter(v=>v.name==texturedShape.name)[0].color =
-                       Coordinates.HSVToHex(0,0,.075)
-              })
+              SetTexture('board',
+                  'https://srmcgann.github.io/quadtris/board_grey.png')
+              shapes.filter(v=>v.name=='board')[0].color =
+                   Coordinates.HSVToHex(360/9*(key-49),1,.1)
             }else{
               SetRefTexture('https://srmcgann.github.io/skyboxes/HDRI/28.jpg', 1)
             }
@@ -625,7 +619,7 @@
     name: 'background',
     playbackSpeed,
     sphereize: 1,
-    yaw: Math.PI/2,
+    yaw: 0,
     subs: 4,
     map: refTexture,
     size: 5e3,
@@ -973,7 +967,7 @@
     scaleZ: .25,
     y: 9,
     color: 0x000000,
-    colorMix: .75,
+    colorMix: .85,
   }
   await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
     for(var i = 0; i < geometry.vertices.length; i+=3){
@@ -1274,8 +1268,8 @@
   window.Draw = () => {
     var t = renderer.frameCount / 60
     
-    renderer.yaw = S(t/8)/8
-    renderer.pitch = C(t/16)/16
+    renderer.yaw = S(t/8)/32
+    renderer.pitch = C(t/6)/16
     
     if(!((t*60|0)%(240/(1+level/4)|0))){
       if(Test('down')){
@@ -1354,8 +1348,7 @@
               y = C(p) * d
               shape.vertices[idx + 0] = x + ix
               shape.vertices[idx + 1] = y + iy + 8
-              shape.vertices[idx + 2] = -.25
-              //(piece.subShape.baseVertices[idx2 + 2] + piece.subShape.z + piece.oz) * 10
+              shape.vertices[idx + 2] = -.25 // + (piece.subShape.baseVertices[idx2 + 2] + piece.subShape.z + piece.oz) * .1
             })
           })
          
