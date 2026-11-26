@@ -11,304 +11,265 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Coordinates boilerplate example</title>
+    <title>TRITRIS [work in progress]</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Play:wght@400;700&display=swap" rel="stylesheet">
     <style>
-      body, html{
+    body, html{
         background: #000;
         margin: 0;
         min-height: 100vh;
         overflow: hidden;
+        font-family: Play;
+      }
+      #header{
+        top: 0;
+      }
+      #footer{
+        top: calc(100vh - 30px);
+      }
+      #header, #footer{
+        width: 100vw;
+        height: 15px;
+        background: linear-gradient(90deg,#000,#000,#333,#888,#333,#000,#000);
+        position: absolute;
+        padding: 10px;
+        font-size: 32px;
+        z-index: 100;
+        color: #888;
+        line-height: 10px;
+        font-weight: 900;
+        font-style: italic;
+      }
+      #leftBar{
+        left: 0;
+      }
+      #rightBar{
+        left: calc(100vw - 30px);
+      }
+      #leftBar, #rightBar{
+        width: 15px;
+        height: 100vh;
+        background: linear-gradient(0deg,#000,#000,#333,#888,#333,#000,#000);
+        position: absolute;
+        padding: 10px;
+        font-size: 32px;
+        z-index: 100;
+        color: #888;
+        line-height: 10px;
+        font-weight: 900;
+        font-style: italic;
+      }
+      .glow{
+        text-shadow: 3px 3px 4px #f00;
+      }
+      .wide{
+        transform: scale(2, 1) translate(calc(50% - 20px), 0);
+        display: inline-block;
       }
     </style>
   </head>
   <body>
-<script type="module">
+    <div id="header"><span class="wide glow">TRITRIS</span></div>
+    <div id="footer"><span class="wide glow"></span></div>
+    <div id="leftBar"><span class="wide glow"></span></div>
+    <div id="rightBar"><span class="wide glow"></span></div>
+    <script type="module">
+      import * as Coordinates from
+      "https://srmcgann.github.io/Coordinates/coordinates.min.js"
 
-  import * as Coordinates from
-  "https://srmcgann.github.io/Coordinates/coordinates.min.js"
+      var resolution = 1e3
 
-  var resolution = 1e3
-
-  var rendererOptions = {
-    ambientLight: .5, margin: 50,
-    fov: 500, width: resolution / (document.body.clientHeight/document.body.clientWidth), height: resolution,
-  }
-  var renderer = await Coordinates.Renderer(rendererOptions)
-  
-  window.onresize = () => {
-    Coordinates.ResizeRenderer(renderer,
-      resolution / (document.body.clientHeight/document.body.clientWidth),
-      resolution)
-    Coordinates.Overlay.width = renderer.c.width
-    Coordinates.Overlay.height = renderer.c.height
-    Coordinates.Overlay.c.width = renderer.c.width
-    Coordinates.Overlay.c.height = renderer.c.height
-  }
-  
-  var refTexture = 'https://srmcgann.github.io/skyboxes/HDRI/28.jpg'
-  var orefTexture = refTexture
-
-  var playbackSpeed = .75
-  
-  var S = Math.sin
-  var C = Math.cos
-  var Rn = Math.random
-  
-  var ctx = Coordinates.Overlay.ctx
-  var c   = Coordinates.Overlay.c
-  var w   = c.width
-  var h   = c.height
-  
-  var x, y, z, p, q, d
-  var showDropLocation = true
-  
-  Coordinates.AnimationLoop(renderer, 'Draw')
-
-  var shaderOptions = [
-    {lighting: {type: 'ambientLight', value: .8}},
-    { uniform: {
-      type: 'phong',
-      value: .05
-    } },
-    { uniform: {
-      type: 'reflection',
-      map: refTexture,
-      playbackSpeed,
-      enabled: false,
-      theta: 0,
-      value: .05
-    } },
-    { uniform: {
-      type: 'refraction2',
-      angleOfRefraction: 1,
-      map: refTexture,
-      playbackSpeed,
-      enabled: true,
-      theta: 0,
-      value: .123
-    } },
-  ]
-  var shader = await Coordinates.BasicShader(renderer, shaderOptions)
-
-  var shaderOptions = [
-    {lighting: {type: 'ambientLight', value: 1.5}},
-    { uniform: {
-      type: 'phong',
-      value: 0
-    } },
-  ]
-  var spriteShader = await Coordinates.BasicShader(renderer, shaderOptions)
-
-  var shaderOptions = [
-    {lighting: {type: 'ambientLight', value: 1}},
-    { uniform: {
-      type: 'phong',
-      value: 0
-    } },
-    { uniform: {
-      type: 'refraction2',
-      angleOfRefraction: 2.5,
-      map: refTexture,
-      playbackSpeed,
-      theta: 0,
-      value: 1.5
-    } },
-  ]
-  var boardShader = await Coordinates.BasicShader(renderer, shaderOptions)
-
-  var shaderOptions = [
-    {lighting: {type: 'ambientLight', value: 1.25}},
-    { uniform: {
-      type: 'phong',
-      value: 0
-    } }
-  ]
-  var backgroundShader = await Coordinates.BasicShader(renderer, shaderOptions)
-  
-  const GetPieceCoords = pc => {
-    var a = []
-    var b = []
-    var x, y, z
-
-    while(pc.worldTheta < 0){
-      pc.worldTheta += Math.PI*2
-    }
-    while(pc.worldTheta > Math.PI*2){
-      pc.worldTheta -= Math.PI*2
-    }
-    if(C(pc.worldTheta) > 0){
-      pc.subShape.vertIDs.map((v,i) => {
-        var idx = v%(pc.subShape.vertIDs.length == 12 ? 252 : 63)
-        a.push(
-          pc.subShape.baseVertices[idx+0] + pc.x + pc.ox,
-          pc.subShape.baseVertices[idx+1] + pc.y + pc.oy,
-        )
-      })
-      for(var i = 0; i < (pc.subShape.vertIDs.length == 12 ? 4 : 1); i ++){
-        x = 0
-        y = 0
-        for(var j = 0; j < 3; j++){
-          x += a[i*6+j*2]
-          y += a[i*6+j*2+1]
-        }
-        x /= 3
-        y /= 3
-        b.push([x,y])
+      var rendererOptions = {
+        ambientLight: .5, margin: 30,
+        fov: 500, width: resolution / (document.body.clientHeight/document.body.clientWidth), height: resolution,
       }
-      b = b.map(v=>{
-        return v.map((q,j) => {
-          return Math.round(q/2+.5)
-          //return Math.round(Math.round(q-.01*(j?1:-1))/2+.5)
-        })
-      })
-    }else{
-      b = pc.subShape.vertIDs.length == 12 ? [
-        [1e5, 1e5],
-        [1e5, 1e5],
-        [1e5, 1e5],
-        [1e5, 1e5],
-      ] : [[1e5, 1e5]]
-    }
-    return b
-  }
-  
-  
-  const RotatePiece = theta => {
-    if(pieces[pieces.length-1].subShape.id != 2){
-      var stride = shapes.filter(v=>v.name=='pieces')[0].stride
-      var piecesShape = pieces[pieces.length-1].subShape
-      var pIdx = pieces.length -1
-      for(var i = 0; i < pieces[pIdx].subShape.vertIDs.length; i++){
-        var idx = pieces[pIdx].subShape.vertIDs[i]%stride
-        var x1 = piecesShape.baseVertices[idx + 0] + pieces[pIdx].subShape.x 
-        var y1 = piecesShape.baseVertices[idx + 1] + pieces[pIdx].subShape.y
-        p = Math.atan2(x1, y1) + theta
-        d = Math.hypot(x1, y1)
-        x = S(p) * d
-        y = C(p) * d
-        
-        piecesShape.baseVertices[idx + 0] = x - pieces[pIdx].x
-        piecesShape.baseVertices[idx + 1] = y - pieces[pIdx].y
+      var renderer = await Coordinates.Renderer(rendererOptions)
+      
+      window.onresize = () => {
+        Coordinates.ResizeRenderer(renderer,
+          resolution / (document.body.clientHeight/document.body.clientWidth),
+          resolution)
+        Coordinates.Overlay.width = renderer.c.width
+        Coordinates.Overlay.height = renderer.c.height
+        Coordinates.Overlay.c.width = renderer.c.width
+        Coordinates.Overlay.c.height = renderer.c.height
       }
       
-      var stride = shapes.filter(v=>v.name=='centers')[0].stride
-      var centersShape = centers[centers.length-1].subShape
-      var pIdx = centers.length -1
-      for(var i = 0; i < centers[pIdx].subShape.vertIDs.length; i++){
-        var idx = centers[pIdx].subShape.vertIDs[i]%stride
-        var x1 = centersShape.baseVertices[idx + 0] + centers[pIdx].x
-        var y1 = centersShape.baseVertices[idx + 1] + centers[pIdx].y
-        p = Math.atan2(x1, y1) + theta
-        d = Math.hypot(x1, y1)
-        x = S(p) * d
-        y = C(p) * d
-        
-        centersShape.baseVertices[idx + 0] = x - centers[pIdx].x
-        centersShape.baseVertices[idx + 1] = y - centers[pIdx].y
-      }
-    }
-  }
-  
-  
-  
-  const Test = dir => {
-    var clear = true
+      var refTexture = 'https://srmcgann.github.io/skyboxes/HDRI/28.jpg'
+      var orefTexture = refTexture
 
-    switch(dir){
-      case 'left':
-        var pc = centers[centers.length-1]
-        var b = GetPieceCoords(pc)
-        for(var i = 0; i < sampleCenters.length; i ++){
-          var chk = GetPieceCoords(sampleCenters[i])
-          b.map(v1 => {
-            chk.map(v2=>{
-              if(v1[0] - 1 == v2[0] && v1[1] == v2[1]) clear = false
-            })
-          })
+      var playbackSpeed = .75
+      
+      var S = Math.sin
+      var C = Math.cos
+      var Rn = Math.random
+      
+      var ctx = Coordinates.Overlay.ctx
+      var c   = Coordinates.Overlay.c
+      var w   = c.width
+      var h   = c.height
+      
+      var x, y, z, p, q, d
+      var showDropLocation = true
+      
+      Coordinates.AnimationLoop(renderer, 'Draw')
+
+      var shaderOptions = [
+        {lighting: {type: 'ambientLight', value: .8}},
+        { uniform: {
+          type: 'phong',
+          value: .05
+        } },
+        { uniform: {
+          type: 'reflection',
+          map: refTexture,
+          playbackSpeed,
+          enabled: false,
+          theta: 0,
+          value: .05
+        } },
+        { uniform: {
+          type: 'refraction2',
+          angleOfRefraction: 1,
+          map: refTexture,
+          playbackSpeed,
+          enabled: true,
+          theta: 0,
+          value: .123
+        } },
+      ]
+      var shader = await Coordinates.BasicShader(renderer, shaderOptions)
+
+      var shaderOptions = [
+        {lighting: {type: 'ambientLight', value: 1.5}},
+        { uniform: {
+          type: 'phong',
+          value: 0
+        } },
+      ]
+      var spriteShader = await Coordinates.BasicShader(renderer, shaderOptions)
+
+      var shaderOptions = [
+        {lighting: {type: 'ambientLight', value: 1}},
+        { uniform: {
+          type: 'phong',
+          value: 0
+        } },
+        { uniform: {
+          type: 'refraction2',
+          angleOfRefraction: 2.5,
+          map: refTexture,
+          playbackSpeed,
+          theta: 0,
+          value: 1.5
+        } },
+      ]
+      var boardShader = await Coordinates.BasicShader(renderer, shaderOptions)
+
+      var shaderOptions = [
+        {lighting: {type: 'ambientLight', value: 1.25}},
+        { uniform: {
+          type: 'phong',
+          value: 0
+        } }
+      ]
+      var backgroundShader = await Coordinates.BasicShader(renderer, shaderOptions)
+      
+      const GetPieceCoords = pc => {
+        var a = []
+        var b = []
+        var x, y, z
+
+        while(pc.worldTheta < 0){
+          pc.worldTheta += Math.PI*2
         }
-        b.map(v=>{
-          if(v[0] < -3) clear = false
-        })
-      break
-      case 'rotate':
-        
-        RotatePiece(-Math.PI/2)
-        var pc = centers[centers.length-1]
-        var b = GetPieceCoords(pc)
-        
-        // check left
-        b.map(v=>{
-          if(v[0] < -4) clear = false
-        })
-        if(!clear){
-          clear = true
-          pieces[pieces.length-1].ox += 2
-          centers[centers.length-1].ox += 2
-          pc = centers[centers.length-1]
-          b = GetPieceCoords(pc)
-          b.map(v=>{
-            if(v[0] < -4) clear = false
+        while(pc.worldTheta > Math.PI*2){
+          pc.worldTheta -= Math.PI*2
+        }
+        if(C(pc.worldTheta) > 0){
+          pc.subShape.vertIDs.map((v,i) => {
+            var idx = v%(pc.subShape.vertIDs.length == 12 ? 252 : 63)
+            a.push(
+              pc.subShape.baseVertices[idx+0] + pc.x + pc.ox,
+              pc.subShape.baseVertices[idx+1] + pc.y + pc.oy,
+            )
           })
-          if(!clear){
-            clear = true
-            pieces[pieces.length-1].ox += 2
-            centers[centers.length-1].ox += 2
-            pc = centers[centers.length-1]
-            b = GetPieceCoords(pc)
-            for(var i = 0; i < sampleCenters.length; i ++){
-              var chk = GetPieceCoords(sampleCenters[i])
-              b.map(v1 => {
-                chk.map(v2=>{
-                  if(v1[0] + 1 == v2[0] && v1[1] == v2[1]) clear = false
-                })
-              })
+          for(var i = 0; i < (pc.subShape.vertIDs.length == 12 ? 4 : 1); i ++){
+            x = 0
+            y = 0
+            for(var j = 0; j < 3; j++){
+              x += a[i*6+j*2]
+              y += a[i*6+j*2+1]
             }
-            if(!clear){
-              pieces[pieces.length-1].ox -= 2
-              centers[centers.length-1].ox -= 2
-            }
+            x /= 3
+            y /= 3
+            b.push([x,y])
           }
-          for(var i = 0; i < sampleCenters.length; i ++){
-            var chk = GetPieceCoords(sampleCenters[i])
-            b.map(v1 => {
-              chk.map(v2=>{
-                if(v1[0] + 1 == v2[0] && v1[1] == v2[1]) clear = false
-              })
-            })
-          }
-          if(!clear){
-            pieces[pieces.length-1].ox -= 2
-            centers[centers.length-1].ox -= 2
-          }
-        }
-        for(var i = 0; i < sampleCenters.length; i ++){
-          var chk = GetPieceCoords(sampleCenters[i])
-          b.map(v1 => {
-            chk.map(v2=>{
-              if(v1[0] == v2[0] && v1[1] == v2[1]) clear = false
+          b = b.map(v=>{
+            return v.map((q,j) => {
+              return Math.round(q/2+.5)
+              //return Math.round(Math.round(q-.01*(j?1:-1))/2+.5)
             })
           })
+        }else{
+          b = pc.subShape.vertIDs.length == 12 ? [
+            [1e5, 1e5],
+            [1e5, 1e5],
+            [1e5, 1e5],
+            [1e5, 1e5],
+          ] : [[1e5, 1e5]]
         }
-        
-        // check right
-        b.map(v=>{
-          if(v[0] > 5) clear = false
-        })
-        if(!clear){
-          clear = true
-          pieces[pieces.length-1].ox -= 2
-          centers[centers.length-1].ox -= 2
-          pc = centers[centers.length-1]
-          b = GetPieceCoords(pc)
-          b.map(v=>{
-            if(v[0] > 5) clear = false
-          })
-          if(!clear){
-            clear = true
-            pieces[pieces.length-1].ox -= 2
-            centers[centers.length-1].ox -= 2
-            pc = centers[centers.length-1]
-            b = GetPieceCoords(pc)
+        return b
+      }
+      
+      
+      const RotatePiece = theta => {
+        if(pieces[pieces.length-1].subShape.id != 2){
+          var stride = shapes.filter(v=>v.name=='pieces')[0].stride
+          var piecesShape = pieces[pieces.length-1].subShape
+          var pIdx = pieces.length -1
+          for(var i = 0; i < pieces[pIdx].subShape.vertIDs.length; i++){
+            var idx = pieces[pIdx].subShape.vertIDs[i]%stride
+            var x1 = piecesShape.baseVertices[idx + 0] + pieces[pIdx].subShape.x 
+            var y1 = piecesShape.baseVertices[idx + 1] + pieces[pIdx].subShape.y
+            p = Math.atan2(x1, y1) + theta
+            d = Math.hypot(x1, y1)
+            x = S(p) * d
+            y = C(p) * d
+            
+            piecesShape.baseVertices[idx + 0] = x - pieces[pIdx].x
+            piecesShape.baseVertices[idx + 1] = y - pieces[pIdx].y
+          }
+          
+          var stride = shapes.filter(v=>v.name=='centers')[0].stride
+          var centersShape = centers[centers.length-1].subShape
+          var pIdx = centers.length -1
+          for(var i = 0; i < centers[pIdx].subShape.vertIDs.length; i++){
+            var idx = centers[pIdx].subShape.vertIDs[i]%stride
+            var x1 = centersShape.baseVertices[idx + 0] + centers[pIdx].x
+            var y1 = centersShape.baseVertices[idx + 1] + centers[pIdx].y
+            p = Math.atan2(x1, y1) + theta
+            d = Math.hypot(x1, y1)
+            x = S(p) * d
+            y = C(p) * d
+            
+            centersShape.baseVertices[idx + 0] = x - centers[pIdx].x
+            centersShape.baseVertices[idx + 1] = y - centers[pIdx].y
+          }
+        }
+      }
+      
+      
+      
+      const Test = dir => {
+        var clear = true
+
+        switch(dir){
+          case 'left':
+            var pc = centers[centers.length-1]
+            var b = GetPieceCoords(pc)
             for(var i = 0; i < sampleCenters.length; i ++){
               var chk = GetPieceCoords(sampleCenters[i])
               b.map(v1 => {
@@ -317,1193 +278,1284 @@
                 })
               })
             }
+            b.map(v=>{
+              if(v[0] < -3) clear = false
+            })
+          break
+          case 'rotate':
+            
+            RotatePiece(-Math.PI/2)
+            var pc = centers[centers.length-1]
+            var b = GetPieceCoords(pc)
+            
+            // check left
+            b.map(v=>{
+              if(v[0] < -4) clear = false
+            })
             if(!clear){
+              clear = true
               pieces[pieces.length-1].ox += 2
               centers[centers.length-1].ox += 2
-            }
-          }
-          for(var i = 0; i < sampleCenters.length; i ++){
-            var chk = GetPieceCoords(sampleCenters[i])
-            b.map(v1 => {
-              chk.map(v2=>{
-                if(v1[0] - 1 == v2[0] && v1[1] == v2[1]) clear = false
+              pc = centers[centers.length-1]
+              b = GetPieceCoords(pc)
+              b.map(v=>{
+                if(v[0] < -4) clear = false
               })
-            })
-          }
-          if(!clear){
-            pieces[pieces.length-1].ox += 2
-            centers[centers.length-1].ox += 2
-          }
-        }
-        for(var i = 0; i < sampleCenters.length; i ++){
-          var chk = GetPieceCoords(sampleCenters[i])
-          b.map(v1 => {
-            chk.map(v2=>{
-              if(v1[0] == v2[0] && v1[1] == v2[1]) clear = false
-            })
-          })
-        }
-        
-        // check bottom
-        b.map(v=>{
-          if(v[1] < -22) clear = false
-        })
-        
-        if(!clear) RotatePiece(Math.PI/2)
-      break
-      case 'right':
-        var pc = centers[centers.length-1]
-        var b = GetPieceCoords(pc)
-        for(var i = 0; i < sampleCenters.length; i ++){
-          var chk = GetPieceCoords(sampleCenters[i])
-          b.map(v1 => {
-            chk.map(v2=>{
-              if(v1[0] + 1 == v2[0] && v1[1] == v2[1]) clear = false
-            })
-          })
-        }
-        b.map(v=>{
-          if(v[0] > 4) clear = false
-        })
-      break
-      case 'down':
-        var pc = centers[centers.length-1]
-        var b = GetPieceCoords(pc)
-        for(var i = 0; i < sampleCenters.length; i ++){
-          var chk = GetPieceCoords(sampleCenters[i])
-          b.map(v1 => {
-            chk.map(v2=>{
-              if(v1[0] == v2[0] && v1[1] - 1 == v2[1]) clear = false
-            })
-          })
-        }
-        b.map(v=>{
-          if(v[1] < -22) clear = false
-        })
-      break
-    }
-    return clear
-  }
-
-  var keyTimerInterval = .5
-  var placePieceTimer
-  var keys = Array(256).fill(false)
-  var keyTimers = Array(256).fill(0)
-  
-  var boardThetaInterval = Math.PI/3
-  var boardTheta = 0
-  
-  var iPc = 100
-  var level = 1
-
-  const SetTexture = (shapeName, url) => {
-    var shape = shapes.filter(v=>v.name == shapeName)
-    if(shape.length) {
-      shape[0].map = url
-      shape[0].rebindTextures = true
-    }
-  }
-
-  const SetRefTexture = (texture, bgLighting=.75) => {
-    shapes.map(shape => {
-      if(shape.map == refTexture) {
-        shape.map = texture
-        shape.rebindTextures = true
-      }
-      shape.shader.datasets.map(ds=>{
-        if(ds.iURL == refTexture) {
-          ds.iURL = texture
-        }
-        if(typeof ds.optionalUniforms != 'undefined'){
-          if(shape.name == 'background'){
-            ds.optionalLighting.map(u => {
-              u.value = bgLighting
-            })
-          }
-          ds.optionalUniforms.map(u => {
-            if(u.map == refTexture) {
-              u.map = texture
-              u.rebindTextures = true
-            }
-          })
-        }
-      })
-    })
-    refTexture = texture
-  }
-  
-  const DoKeys = () =>{
-    var t = renderer.frameCount / 60
-    keys.map((state, key) => {
-      if(state){
-        switch(key){
-          case 49:
-            if(keys[16]){
-              SetTexture('board',
-                  'https://srmcgann.github.io/quadtris/board_grey.png')
-              shapes.filter(v=>v.name=='board')[0].color =
-                   Coordinates.HSVToHex(0,0,0)
-            }else{
-              SetRefTexture(orefTexture, 1.25)
-            }
-          break
-          case 50:
-            if(keys[16]){
-              SetTexture('board',
-                  'https://srmcgann.github.io/quadtris/board_grey.png')
-              shapes.filter(v=>v.name=='board')[0].color =
-                   Coordinates.HSVToHex(360/9*(key-49),1,.1)
-            }else{
-              SetRefTexture('https://skyboxes2.verymad.net/images/nebugrid.jpg', 1)
-            }
-          break
-          case 51:
-            if(keys[16]){
-              SetTexture('board',
-                  'https://srmcgann.github.io/quadtris/board_grey.png')
-              shapes.filter(v=>v.name=='board')[0].color =
-                   Coordinates.HSVToHex(360/9*(key-49),1,.1)
-            }else{
-              SetRefTexture('https://skyboxes2.verymad.net/images/quickgrid.png', .5)
-            }
-          break
-          case 52:
-            if(keys[16]){
-              SetTexture('board',
-                  'https://srmcgann.github.io/quadtris/board_grey.png')
-              shapes.filter(v=>v.name=='board')[0].color =
-                   Coordinates.HSVToHex(360/9*(key-49),1,.1)
-            }else{
-              SetRefTexture('https://skyboxes2.verymad.net/images/pinkCluds2.jpg', 1)
-            }
-          break
-          case 53:
-            if(keys[16]){
-              SetTexture('board',
-                  'https://srmcgann.github.io/quadtris/board_grey.png')
-              shapes.filter(v=>v.name=='board')[0].color =
-                   Coordinates.HSVToHex(360/9*(key-49),1,.1)
-            }else{
-              SetRefTexture('https://skyboxes2.verymad.net/images/alices.jpg', 1)
-            }
-          break
-          case 54:
-            if(keys[16]){
-              SetTexture('board',
-                  'https://srmcgann.github.io/quadtris/board_grey.png')
-              shapes.filter(v=>v.name=='board')[0].color =
-                   Coordinates.HSVToHex(360/9*(key-49),1,.1)
-            }else{
-              SetRefTexture('https://srmcgann.github.io/skyboxes2/HDRI/1.jpg', 1)
-            }
-          break
-          case 55:
-            if(keys[16]){
-              SetTexture('board',
-                  'https://srmcgann.github.io/quadtris/board_grey.png')
-              shapes.filter(v=>v.name=='board')[0].color =
-                   Coordinates.HSVToHex(360/9*(key-49),1,.1)
-            }else{
-              SetRefTexture('https://srmcgann.github.io/skyboxes/HDRI/9.jpg', 1.25)
-            }
-          break
-          case 56:
-            if(keys[16]){
-              SetTexture('board',
-                  'https://srmcgann.github.io/quadtris/board_grey.png')
-              shapes.filter(v=>v.name=='board')[0].color =
-                   Coordinates.HSVToHex(360/9*(key-49),1,.1)
-            }else{
-              SetRefTexture('https://srmcgann.github.io/Coordinates/resources/earth.jpg', 1)
-            }
-          break
-          case 57:
-            if(keys[16]){
-              SetTexture('board',
-                  'https://srmcgann.github.io/quadtris/board_grey.png')
-              shapes.filter(v=>v.name=='board')[0].color =
-                   Coordinates.HSVToHex(360/9*(key-49),1,.1)
-            }else{
-              SetRefTexture('https://srmcgann.github.io/skyboxes3/HDRI/angels.jpg', 1)
-            }
-          break
-          case 48:
-            if(keys[16]){
-              SetTexture('board',
-                  'https://srmcgann.github.io/quadtris/board_grey.png')
-              shapes.filter(v=>v.name=='board')[0].color =
-                   Coordinates.HSVToHex(360/9*(key-49),1,.1)
-            }else{
-              SetRefTexture('https://skyboxes2.verymad.net/images/19.jpg', 1)
-            }
-          break
-          case 65: // a
-            if(keyTimers[key] < t){
-              boardTheta += Math.PI*2/3
-              keyTimers[key] = t + keyTimerInterval / 1.5
-              keys[key] = false
-              state = false
-            }
-          break
-          case 68: // d
-            if(keyTimers[key] < t){
-              boardTheta -= Math.PI*2/3
-              keyTimers[key] = t + keyTimerInterval / 1.5
-              keys[key] = false
-              state = false
-            }
-          break
-          case 32: // space
-            if(Math.abs(boardTheta) < .001){
-              if(keyTimers[key] < t){
-                while(Test('down')){
-                  pieces[pieces.length-1].oy -= 2
-                  centers[centers.length-1].oy -= 2
+              if(!clear){
+                clear = true
+                pieces[pieces.length-1].ox += 2
+                centers[centers.length-1].ox += 2
+                pc = centers[centers.length-1]
+                b = GetPieceCoords(pc)
+                for(var i = 0; i < sampleCenters.length; i ++){
+                  var chk = GetPieceCoords(sampleCenters[i])
+                  b.map(v1 => {
+                    chk.map(v2=>{
+                      if(v1[0] + 1 == v2[0] && v1[1] == v2[1]) clear = false
+                    })
+                  })
                 }
-                CheckRows()
-                SpawnPiece(Rn() * 7 | 0)
-                keyTimers[key] = t + keyTimerInterval * 2
+                if(!clear){
+                  pieces[pieces.length-1].ox -= 2
+                  centers[centers.length-1].ox -= 2
+                }
+              }
+              for(var i = 0; i < sampleCenters.length; i ++){
+                var chk = GetPieceCoords(sampleCenters[i])
+                b.map(v1 => {
+                  chk.map(v2=>{
+                    if(v1[0] + 1 == v2[0] && v1[1] == v2[1]) clear = false
+                  })
+                })
+              }
+              if(!clear){
+                pieces[pieces.length-1].ox -= 2
+                centers[centers.length-1].ox -= 2
               }
             }
-          break
-          case 37: // left arrow
-            if(keyTimers[key] < t && Test('left')){
+            for(var i = 0; i < sampleCenters.length; i ++){
+              var chk = GetPieceCoords(sampleCenters[i])
+              b.map(v1 => {
+                chk.map(v2=>{
+                  if(v1[0] == v2[0] && v1[1] == v2[1]) clear = false
+                })
+              })
+            }
+            
+            // check right
+            b.map(v=>{
+              if(v[0] > 5) clear = false
+            })
+            if(!clear){
+              clear = true
               pieces[pieces.length-1].ox -= 2
               centers[centers.length-1].ox -= 2
-              keyTimers[key] = t + keyTimerInterval * (t-keyTimers[key] > keyTimerInterval? 1 : .25)
+              pc = centers[centers.length-1]
+              b = GetPieceCoords(pc)
+              b.map(v=>{
+                if(v[0] > 5) clear = false
+              })
+              if(!clear){
+                clear = true
+                pieces[pieces.length-1].ox -= 2
+                centers[centers.length-1].ox -= 2
+                pc = centers[centers.length-1]
+                b = GetPieceCoords(pc)
+                for(var i = 0; i < sampleCenters.length; i ++){
+                  var chk = GetPieceCoords(sampleCenters[i])
+                  b.map(v1 => {
+                    chk.map(v2=>{
+                      if(v1[0] - 1 == v2[0] && v1[1] == v2[1]) clear = false
+                    })
+                  })
+                }
+                if(!clear){
+                  pieces[pieces.length-1].ox += 2
+                  centers[centers.length-1].ox += 2
+                }
+              }
+              for(var i = 0; i < sampleCenters.length; i ++){
+                var chk = GetPieceCoords(sampleCenters[i])
+                b.map(v1 => {
+                  chk.map(v2=>{
+                    if(v1[0] - 1 == v2[0] && v1[1] == v2[1]) clear = false
+                  })
+                })
+              }
+              if(!clear){
+                pieces[pieces.length-1].ox += 2
+                centers[centers.length-1].ox += 2
+              }
             }
-          break
-          case 38: // up arrow
-            if(keyTimers[key] < t && Test('rotate')){
-              keyTimers[key] = t + keyTimerInterval * (t-keyTimers[key] > keyTimerInterval? 1 : .25)
+            for(var i = 0; i < sampleCenters.length; i ++){
+              var chk = GetPieceCoords(sampleCenters[i])
+              b.map(v1 => {
+                chk.map(v2=>{
+                  if(v1[0] == v2[0] && v1[1] == v2[1]) clear = false
+                })
+              })
             }
+            
+            // check bottom
+            b.map(v=>{
+              if(v[1] < -22) clear = false
+            })
+            
+            if(!clear) RotatePiece(Math.PI/2)
           break
-          case 39: // right arrow
-            if(keyTimers[key] < t && Test('right')){
-              pieces[pieces.length-1].ox += 2
-              centers[centers.length-1].ox += 2
-              keyTimers[key] = t + keyTimerInterval * (t-keyTimers[key] > keyTimerInterval? 1 : .25)
+          case 'right':
+            var pc = centers[centers.length-1]
+            var b = GetPieceCoords(pc)
+            for(var i = 0; i < sampleCenters.length; i ++){
+              var chk = GetPieceCoords(sampleCenters[i])
+              b.map(v1 => {
+                chk.map(v2=>{
+                  if(v1[0] + 1 == v2[0] && v1[1] == v2[1]) clear = false
+                })
+              })
             }
+            b.map(v=>{
+              if(v[0] > 4) clear = false
+            })
           break
-          case 40: // down arrow
-            if(Math.abs(boardTheta) < .001){
-              if(keyTimers[key] < t){
-                if(Test('down')){
-                  pieces[pieces.length-1].oy -= 2
-                  centers[centers.length-1].oy -= 2
-                  keyTimers[key] = t + keyTimerInterval * (t-keyTimers[key] > keyTimerInterval? 1 : .1)
+          case 'down':
+            var pc = centers[centers.length-1]
+            var b = GetPieceCoords(pc)
+            for(var i = 0; i < sampleCenters.length; i ++){
+              var chk = GetPieceCoords(sampleCenters[i])
+              b.map(v1 => {
+                chk.map(v2=>{
+                  if(v1[0] == v2[0] && v1[1] - 1 == v2[1]) clear = false
+                })
+              })
+            }
+            b.map(v=>{
+              if(v[1] < -22) clear = false
+            })
+          break
+        }
+        return clear
+      }
+
+      var keyTimerInterval = .5
+      var placePieceTimer
+      var keys = Array(256).fill(false)
+      var keyTimers = Array(256).fill(0)
+      
+      var boardThetaInterval = Math.PI/3
+      var boardTheta = 0
+      
+      var iPc = 100
+      var level = 1
+
+      const SetTexture = (shapeName, url) => {
+        var shape = shapes.filter(v=>v.name == shapeName)
+        if(shape.length) {
+          shape[0].map = url
+          shape[0].rebindTextures = true
+        }
+      }
+
+      const SetRefTexture = (texture, bgLighting=.75) => {
+        shapes.map(shape => {
+          if(shape.map == refTexture) {
+            shape.map = texture
+            shape.rebindTextures = true
+          }
+          shape.shader.datasets.map(ds=>{
+            if(ds.iURL == refTexture) {
+              ds.iURL = texture
+            }
+            if(typeof ds.optionalUniforms != 'undefined'){
+              if(shape.name == 'background'){
+                ds.optionalLighting.map(u => {
+                  u.value = bgLighting
+                })
+              }
+              ds.optionalUniforms.map(u => {
+                if(u.map == refTexture) {
+                  u.map = texture
+                  u.rebindTextures = true
+                }
+              })
+            }
+          })
+        })
+        refTexture = texture
+      }
+      
+      const DoKeys = () =>{
+        var t = renderer.frameCount / 60
+        keys.map((state, key) => {
+          if(state){
+            switch(key){
+              case 49:
+                if(keys[16]){
+                  SetTexture('board',
+                      'https://srmcgann.github.io/quadtris/board_grey.png')
+                  shapes.filter(v=>v.name=='board')[0].color =
+                       Coordinates.HSVToHex(0,0,0)
                 }else{
-                  if(t-keyTimers[key] > keyTimerInterval){
-                    placePieceTimer = t + 30
-                  }else{
-                    if(placePieceTimer < t){
-                      CheckRows()
-                      SpawnPiece(Rn() * 7 | 0)
+                  SetRefTexture(orefTexture, 1.25)
+                }
+              break
+              case 50:
+                if(keys[16]){
+                  SetTexture('board',
+                      'https://srmcgann.github.io/quadtris/board_grey.png')
+                  shapes.filter(v=>v.name=='board')[0].color =
+                       Coordinates.HSVToHex(360/9*(key-49),1,.1)
+                }else{
+                  SetRefTexture('https://skyboxes2.verymad.net/images/nebugrid.jpg', 1)
+                }
+              break
+              case 51:
+                if(keys[16]){
+                  SetTexture('board',
+                      'https://srmcgann.github.io/quadtris/board_grey.png')
+                  shapes.filter(v=>v.name=='board')[0].color =
+                       Coordinates.HSVToHex(360/9*(key-49),1,.1)
+                }else{
+                  SetRefTexture('https://skyboxes2.verymad.net/images/quickgrid.png', .5)
+                }
+              break
+              case 52:
+                if(keys[16]){
+                  SetTexture('board',
+                      'https://srmcgann.github.io/quadtris/board_grey.png')
+                  shapes.filter(v=>v.name=='board')[0].color =
+                       Coordinates.HSVToHex(360/9*(key-49),1,.1)
+                }else{
+                  SetRefTexture('https://skyboxes2.verymad.net/images/pinkCluds2.jpg', 1)
+                }
+              break
+              case 53:
+                if(keys[16]){
+                  SetTexture('board',
+                      'https://srmcgann.github.io/quadtris/board_grey.png')
+                  shapes.filter(v=>v.name=='board')[0].color =
+                       Coordinates.HSVToHex(360/9*(key-49),1,.1)
+                }else{
+                  SetRefTexture('https://skyboxes2.verymad.net/images/alices.jpg', 1)
+                }
+              break
+              case 54:
+                if(keys[16]){
+                  SetTexture('board',
+                      'https://srmcgann.github.io/quadtris/board_grey.png')
+                  shapes.filter(v=>v.name=='board')[0].color =
+                       Coordinates.HSVToHex(360/9*(key-49),1,.1)
+                }else{
+                  SetRefTexture('https://srmcgann.github.io/skyboxes2/HDRI/1.jpg', 1)
+                }
+              break
+              case 55:
+                if(keys[16]){
+                  SetTexture('board',
+                      'https://srmcgann.github.io/quadtris/board_grey.png')
+                  shapes.filter(v=>v.name=='board')[0].color =
+                       Coordinates.HSVToHex(360/9*(key-49),1,.1)
+                }else{
+                  SetRefTexture('https://srmcgann.github.io/skyboxes/HDRI/9.jpg', 1.25)
+                }
+              break
+              case 56:
+                if(keys[16]){
+                  SetTexture('board',
+                      'https://srmcgann.github.io/quadtris/board_grey.png')
+                  shapes.filter(v=>v.name=='board')[0].color =
+                       Coordinates.HSVToHex(360/9*(key-49),1,.1)
+                }else{
+                  SetRefTexture('https://srmcgann.github.io/Coordinates/resources/earth.jpg', 1)
+                }
+              break
+              case 57:
+                if(keys[16]){
+                  SetTexture('board',
+                      'https://srmcgann.github.io/quadtris/board_grey.png')
+                  shapes.filter(v=>v.name=='board')[0].color =
+                       Coordinates.HSVToHex(360/9*(key-49),1,.1)
+                }else{
+                  SetRefTexture('https://srmcgann.github.io/skyboxes3/HDRI/angels.jpg', 1)
+                }
+              break
+              case 48:
+                if(keys[16]){
+                  SetTexture('board',
+                      'https://srmcgann.github.io/quadtris/board_grey.png')
+                  shapes.filter(v=>v.name=='board')[0].color =
+                       Coordinates.HSVToHex(360/9*(key-49),1,.1)
+                }else{
+                  SetRefTexture('https://srmcgann.github.io/skyboxes7/HDRI/space.jpg', 1)
+                }
+              break
+              case 65: // a
+                if(keyTimers[key] < t){
+                  boardTheta += Math.PI*2/3
+                  keyTimers[key] = t + keyTimerInterval / 1.5
+                  keys[key] = false
+                  state = false
+                }
+              break
+              case 68: // d
+                if(keyTimers[key] < t){
+                  boardTheta -= Math.PI*2/3
+                  keyTimers[key] = t + keyTimerInterval / 1.5
+                  keys[key] = false
+                  state = false
+                }
+              break
+              case 32: // space
+                if(Math.abs(boardTheta) < .001){
+                  if(keyTimers[key] < t){
+                    while(Test('down')){
+                      pieces[pieces.length-1].oy -= 2
+                      centers[centers.length-1].oy -= 2
+                    }
+                    CheckRows()
+                    SpawnPiece(Rn() * 7 | 0)
+                    keyTimers[key] = t + keyTimerInterval * 2
+                  }
+                }
+              break
+              case 37: // left arrow
+                if(keyTimers[key] < t && Test('left')){
+                  pieces[pieces.length-1].ox -= 2
+                  centers[centers.length-1].ox -= 2
+                  keyTimers[key] = t + keyTimerInterval * (t-keyTimers[key] > keyTimerInterval? 1 : .25)
+                }
+              break
+              case 38: // up arrow
+                if(keyTimers[key] < t && Test('rotate')){
+                  keyTimers[key] = t + keyTimerInterval * (t-keyTimers[key] > keyTimerInterval? 1 : .25)
+                }
+              break
+              case 39: // right arrow
+                if(keyTimers[key] < t && Test('right')){
+                  pieces[pieces.length-1].ox += 2
+                  centers[centers.length-1].ox += 2
+                  keyTimers[key] = t + keyTimerInterval * (t-keyTimers[key] > keyTimerInterval? 1 : .25)
+                }
+              break
+              case 40: // down arrow
+                if(Math.abs(boardTheta) < .001){
+                  if(keyTimers[key] < t){
+                    if(Test('down')){
+                      pieces[pieces.length-1].oy -= 2
+                      centers[centers.length-1].oy -= 2
+                      keyTimers[key] = t + keyTimerInterval * (t-keyTimers[key] > keyTimerInterval? 1 : .1)
+                    }else{
+                      if(t-keyTimers[key] > keyTimerInterval){
+                        placePieceTimer = t + 30
+                      }else{
+                        if(placePieceTimer < t){
+                          CheckRows()
+                          SpawnPiece(Rn() * 7 | 0)
+                        }
+                      }
                     }
                   }
                 }
+              break
+            }
+          }
+        })
+      }
+
+      window.onkeydown = e => {
+        console.log(e.keyCode)
+        keys[e.keyCode] = true
+      }
+
+      window.onkeyup = e => {
+        keyTimers[e.keyCode] = 0
+        keys[e.keyCode] = false
+      }
+
+      var shapes = []
+      var pieces = []
+      var samples = []
+      var dropPiece
+      var centers = []
+      var sampleCenters = []
+      var box    = []
+
+      var geoOptions = {
+        shapeType: 'dodecahedron',
+        name: 'background',
+        playbackSpeed,
+        sphereize: 1,
+        yaw: 0,
+        subs: 4,
+        map: refTexture,
+        size: 5e3,
+        colorMix: 0,
+      }
+      await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+        shapes.push(geometry)
+        await backgroundShader.ConnectGeometry(geometry)
+      })
+      
+      var pointArray = Array(7).fill().map((v,i) => [0,0,0])
+      var pieceBank = Array(7).fill().map((v, i) => {
+        return{
+          id: i%7,
+          x: 1e5,
+          y: -1e5,
+          z: 0,
+          vertIDs: [],
+        }
+      })
+      
+      var sampleBank = Array(iPc*4*10).fill().map((v, i) => {
+        return{
+          id: i%7,
+          x: 1e5,
+          y: -1e5,
+          z: 0,
+          vertIDs: [],
+        }
+      })
+      
+      var centersBank = Array(7).fill().map((v, i) => {
+        return{
+          id: i%7,
+          x: 1e5,
+          y: -1e5,
+          z: 0,
+          vertIDs: [],
+          vertices: [],
+        }
+      })
+      
+      var sampleCentersBank = Array(iPc*4*10).fill().map((v, i) => {
+        return{
+          id: i%7,
+          x: 1e5,
+          y: -1e5,
+          z: 0,
+          vertIDs: [],
+          vertices: [],
+        }
+      })
+      
+      var tetraminoTexture = 'https://srmcgann.github.io/quadtris/tetraminoes4.png'
+      var baseShapeVerts
+      var geoOptions = {
+        shapeType: 'obj',
+        url: 'https://srmcgann.github.io/quadtris/tetraminoes.obj',
+        map: tetraminoTexture,
+        name: 'pieces',
+        //disableDepthTest: true,
+        scaleX: -.95,
+        scaleY: -.95,
+        scaleZ: .25,
+        objZ: -.25,
+        colorMix: 0,
+      }
+      await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+        await Coordinates.ShapeFromArray(geometry, pointArray).then(async res => {
+          res.isShapeArray = false
+          var zSpacing = []
+          var sp = .5
+          for(var i = 0; i < 7; i ++){
+            zSpacing.push((i-3.5)*sp)
+          }
+          
+          for(var i = 0; i < res.stride; i += 9){
+            var tgt = -1
+            var x1 = res.vertices[i+0]
+            var y1 = res.vertices[i+1]
+            var z1 = res.vertices[i+2]
+            var x2 = res.vertices[i+3]
+            var y2 = res.vertices[i+4]
+            var z2 = res.vertices[i+5]
+            var x3 = res.vertices[i+6]
+            var y3 = res.vertices[i+7]
+            var z3 = res.vertices[i+8]
+            var ax = (x1+x2+x3) / 3
+            var ay = (y1+y2+y3) / 3
+            var az = (z1+z2+z3) / 3
+            var mind = 6e6
+            zSpacing.map((v, i) => {
+              if((d=Math.abs(v-az)) < mind){
+                mind = d
+                tgt = i
+              }
+            })
+            if(tgt != -1){
+              pieceBank[tgt].z = -zSpacing[tgt]
+              for(var m = 0; m < 3; m++){
+                pieceBank[tgt].vertIDs.push(i+m*3)
               }
             }
-          break
-        }
-      }
-    })
-  }
-
-  window.onkeydown = e => {
-    console.log(e.keyCode)
-    keys[e.keyCode] = true
-  }
-
-  window.onkeyup = e => {
-    keyTimers[e.keyCode] = 0
-    keys[e.keyCode] = false
-  }
-
-  var shapes = []
-  var pieces = []
-  var samples = []
-  var dropPiece
-  var centers = []
-  var sampleCenters = []
-  var box    = []
-
-  var geoOptions = {
-    shapeType: 'dodecahedron',
-    name: 'background',
-    playbackSpeed,
-    sphereize: 1,
-    yaw: 0,
-    subs: 4,
-    map: refTexture,
-    size: 5e3,
-    colorMix: 0,
-  }
-  await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
-    shapes.push(geometry)
-    await backgroundShader.ConnectGeometry(geometry)
-  })
-  
-  var pointArray = Array(7).fill().map((v,i) => [0,0,0])
-  var pieceBank = Array(7).fill().map((v, i) => {
-    return{
-      id: i%7,
-      x: 1e5,
-      y: -1e5,
-      z: 0,
-      vertIDs: [],
-    }
-  })
-  
-  var sampleBank = Array(iPc*4*10).fill().map((v, i) => {
-    return{
-      id: i%7,
-      x: 1e5,
-      y: -1e5,
-      z: 0,
-      vertIDs: [],
-    }
-  })
-  
-  var centersBank = Array(7).fill().map((v, i) => {
-    return{
-      id: i%7,
-      x: 1e5,
-      y: -1e5,
-      z: 0,
-      vertIDs: [],
-      vertices: [],
-    }
-  })
-  
-  var sampleCentersBank = Array(iPc*4*10).fill().map((v, i) => {
-    return{
-      id: i%7,
-      x: 1e5,
-      y: -1e5,
-      z: 0,
-      vertIDs: [],
-      vertices: [],
-    }
-  })
-  
-  var tetraminoTexture = 'https://srmcgann.github.io/quadtris/tetraminoes4.png'
-  var baseShapeVerts
-  var geoOptions = {
-    shapeType: 'obj',
-    url: 'https://srmcgann.github.io/quadtris/tetraminoes.obj',
-    map: tetraminoTexture,
-    name: 'pieces',
-    //disableDepthTest: true,
-    scaleX: -.95,
-    scaleY: -.95,
-    scaleZ: .25,
-    objZ: -.25,
-    colorMix: 0,
-  }
-  await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
-    await Coordinates.ShapeFromArray(geometry, pointArray).then(async res => {
-      res.isShapeArray = false
-      var zSpacing = []
-      var sp = .5
-      for(var i = 0; i < 7; i ++){
-        zSpacing.push((i-3.5)*sp)
-      }
-      
-      for(var i = 0; i < res.stride; i += 9){
-        var tgt = -1
-        var x1 = res.vertices[i+0]
-        var y1 = res.vertices[i+1]
-        var z1 = res.vertices[i+2]
-        var x2 = res.vertices[i+3]
-        var y2 = res.vertices[i+4]
-        var z2 = res.vertices[i+5]
-        var x3 = res.vertices[i+6]
-        var y3 = res.vertices[i+7]
-        var z3 = res.vertices[i+8]
-        var ax = (x1+x2+x3) / 3
-        var ay = (y1+y2+y3) / 3
-        var az = (z1+z2+z3) / 3
-        var mind = 6e6
-        zSpacing.map((v, i) => {
-          if((d=Math.abs(v-az)) < mind){
-            mind = d
-            tgt = i
           }
-        })
-        if(tgt != -1){
-          pieceBank[tgt].z = -zSpacing[tgt]
-          for(var m = 0; m < 3; m++){
-            pieceBank[tgt].vertIDs.push(i+m*3)
-          }
-        }
-      }
-      
-      for(var i = 7; i < 7; i++){
-        pieceBank[i].x = pieceBank[i%7].x
-        pieceBank[i].y = pieceBank[i%7].y
-        pieceBank[i].z = pieceBank[i%7].z
-        pieceBank[i].vertIDs = structuredClone(pieceBank[i%7].vertIDs).map(v => {
-          return v + res.stride * ((i/7|0)+1)
-        })
-      }
-      
-      for(var i = 0 ; i < res.vstate.length; i += 3){
-        res.vertices[i+0] += 1e5
-        res.vertices[i+1] += -1e5
-        res.vertices[i+2] += 0
-      }
-      shapes.push(res)
-      baseShapeVerts = structuredClone(res.vertices.slice(0, res.stride))
-      await shader.ConnectGeometry(res)
-    })
-  })
-  
-  var baseSampleVerts
-  var pointArray = Array(iPc*4).fill().map((v,i) => [0,0,0])
-  var geoOptions = {
-    shapeType: 'obj',
-    url: 'https://srmcgann.github.io/quadtris/samplePieces.obj?2',
-    map: tetraminoTexture,
-    name: 'samples',
-    //disableDepthTest: true,
-    scaleX: -.95,
-    scaleY: -.95,
-    scaleZ: .25,
-    objZ: -.25,
-    cullFace: '',
-    colorMix: 0,
-  }
-  await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
-    await Coordinates.ShapeFromArray(geometry, pointArray).then(async res =>{
-      res.isShapeArray = false
-      var zSpacing = []
-      var sp = .5
-      for(var i = 0; i < 7; i ++){
-        zSpacing.push((i-3.5)*sp)
-      }
-      
-      for(var i = 0; i < res.stride; i += 9){
-        var tgt = -1
-        var x1 = res.vertices[i+0]
-        var y1 = res.vertices[i+1]
-        var z1 = res.vertices[i+2]
-        var x2 = res.vertices[i+3]
-        var y2 = res.vertices[i+4]
-        var z2 = res.vertices[i+5]
-        var x3 = res.vertices[i+6]
-        var y3 = res.vertices[i+7]
-        var z3 = res.vertices[i+8]
-        var ax = (x1+x2+x3) / 3
-        var ay = (y1+y2+y3) / 3
-        var az = (z1+z2+z3) / 3
-        var mind = 6e6
-        zSpacing.map((v, i) => {
-          if((d=Math.abs(v-az)) < mind){
-            mind = d
-            tgt = i
-          }
-        })
-        if(tgt != -1){
-          sampleBank[tgt].z = -zSpacing[tgt]
-          for(var m = 0; m < 3; m++){
-            sampleBank[tgt].vertIDs.push(i+m*3)
-          }
-        }
-      }
-      
-      for(var i = 7; i < iPc*4*10; i++){
-        sampleBank[i].x = sampleBank[i%7].x
-        sampleBank[i].y = sampleBank[i%7].y
-        sampleBank[i].z = sampleBank[i%7].z
-        sampleBank[i].vertIDs = structuredClone(sampleBank[i%7].vertIDs).map(v => {
-          return v + res.stride * ((i/7|0)+1)
-        })
-      }
-      
-      for(var i = 0 ; i < res.vstate.length; i += 3){
-        res.vertices[i+0] += 1e5
-        res.vertices[i+1] += -1e5
-        res.vertices[i+2] += 0
-      }
-      shapes.push(res)
-      baseSampleVerts = structuredClone(res.vertices.slice(0, res.stride))
-      await shader.ConnectGeometry(res)
-    })
-  })
-  
-  var baseCenterVerts
-  var pointArray = Array(7).fill().map((v,i) => [0,0,0])
-  var geoOptions = {
-    shapeType: 'obj',
-    url: 'https://srmcgann.github.io/quadtris/centers.obj',
-    name: 'centers',
-    scaleX: -.95,
-    scaleY: -.95,
-    scaleZ: .25,
-    objZ: -.25,
-  }
-  await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
-    await Coordinates.ShapeFromArray(geometry, pointArray).then(async res =>{
-      res.isShapeArray = false
-      var zSpacing = []
-      var sp = .5
-      for(var i = 0; i < 7; i ++){
-        zSpacing.push((i-3.5)*sp)
-      }
-      
-      for(var i = 0; i < res.stride; i += 9){
-        var tgt = -1
-        var x1 = res.vertices[i+0]
-        var y1 = res.vertices[i+1]
-        var z1 = res.vertices[i+2]
-        var x2 = res.vertices[i+3]
-        var y2 = res.vertices[i+4]
-        var z2 = res.vertices[i+5]
-        var x3 = res.vertices[i+6]
-        var y3 = res.vertices[i+7]
-        var z3 = res.vertices[i+8]
-        var ax = (x1+x2+x3) / 3
-        var ay = (y1+y2+y3) / 3
-        var az = (z1+z2+z3) / 3
-        var mind = 6e6
-        zSpacing.map((v, i) => {
-          if((d=Math.abs(v-az)) < mind){
-            mind = d
-            tgt = i
-          }
-        })
-        if(tgt != -1){
-          centersBank[tgt].z = -zSpacing[tgt]
-          for(var m = 0; m < 3; m++){
-            centersBank[tgt].vertIDs.push(i+m*3)
-          }
-        }
-      }
-      
-      for(var i = 7; i < 7; i++){
-        centersBank[i].x = centersBank[i%7].x
-        centersBank[i].y = centersBank[i%7].y
-        centersBank[i].z = centersBank[i%7].z
-        centersBank[i].vertIDs = structuredClone(centersBank[i%7].vertIDs).map(v => {
-          return v + res.stride * ((i/7|0)+1)
-        })
-      }
-      
-      for(var i = 0 ; i < res.vstate.length; i += 3){
-        res.vertices[i+0] += 1e5
-        res.vertices[i+1] += -1e5
-        res.vertices[i+2] += 0
-      }
-      shapes.push(res)
-      baseCenterVerts = structuredClone(res.vertices.slice(0, res.stride))
-    })
-  })
-  
-  var baseSampleCenterVerts
-  var pointArray = Array(iPc*4).fill().map((v,i) => [0,0,0])
-  var geoOptions = {
-    shapeType: 'obj',
-    url: 'https://srmcgann.github.io/quadtris/sampleCenters.obj',
-    name: 'sampleCenters',
-    scaleX: -.95,
-    scaleY: -.95,
-    scaleZ: .25,
-    objZ: -.25,
-  }
-  await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
-    await Coordinates.ShapeFromArray(geometry, pointArray).then(async res =>{
-      res.isShapeArray = false
-      var zSpacing = []
-      var sp = .5
-      for(var i = 0; i < 7; i ++){
-        zSpacing.push((i-3.5)*sp)
-      }
-      
-      for(var i = 0; i < res.stride; i += 9){
-        var tgt = -1
-        var x1 = res.vertices[i+0]
-        var y1 = res.vertices[i+1]
-        var z1 = res.vertices[i+2]
-        var x2 = res.vertices[i+3]
-        var y2 = res.vertices[i+4]
-        var z2 = res.vertices[i+5]
-        var x3 = res.vertices[i+6]
-        var y3 = res.vertices[i+7]
-        var z3 = res.vertices[i+8]
-        var ax = (x1+x2+x3) / 3
-        var ay = (y1+y2+y3) / 3
-        var az = (z1+z2+z3) / 3
-        var mind = 6e6
-        zSpacing.map((v, i) => {
-          if((d=Math.abs(v-az)) < mind){
-            mind = d
-            tgt = i
-          }
-        })
-        if(tgt != -1){
-          sampleCentersBank[tgt].z = -zSpacing[tgt]
-          for(var m = 0; m < 3; m++){
-            sampleCentersBank[tgt].vertIDs.push(i+m*3)
-          }
-        }
-      }
-      
-      for(var i = 7; i < iPc*4*10; i++){
-        sampleCentersBank[i].x = sampleCentersBank[i%7].x
-        sampleCentersBank[i].y = sampleCentersBank[i%7].y
-        sampleCentersBank[i].z = sampleCentersBank[i%7].z
-        sampleCentersBank[i].vertIDs = structuredClone(sampleCentersBank[i%7].vertIDs).map(v => {
-          return v + res.stride * ((i/7|0)+1)
-        })
-      }
-      
-      for(var i = 0 ; i < res.vstate.length; i += 3){
-        res.vertices[i+0] += 1e5
-        res.vertices[i+1] += -1e5
-        res.vertices[i+2] += 0
-      }
-      shapes.push(res)
-      baseSampleCenterVerts = structuredClone(res.vertices.slice(0, res.stride))
-    })
-  })
-  
-  
-  var geoOptions = {
-    shapeType: 'obj',
-    url: 'https://srmcgann.github.io/quadtris/board.obj',
-    map: 'https://srmcgann.github.io/quadtris/board_grey.png',
-    name: 'board',
-    cullFace: 'back',
-    disableDepthTest: false,
-    //alpha: .5,
-    scaleX: -1.006,
-    scaleY: 1.006,
-    scaleZ: .25,
-    y: 9,
-    color: 0x000000,
-    colorMix: .75,
-  }
-  await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
-    for(var i = 0; i < geometry.vertices.length; i+=3){
-      geometry.vertices[i+0] += 0
-      geometry.vertices[i+1] += 0
-      geometry.vertices[i+2] += 0
-    }
-    shapes.push(geometry)
-    await boardShader.ConnectGeometry(geometry)
- })
-  
-  
-  var iFc = 100
-  var baseFlash
-  var pointArray = Array(iFc).fill().map((v, i) => {
-    return [0,0,0]
-  })
-  var geoOptions = {
-    shapeType: 'sprite',
-    name: 'flashes',
-    map: 'https://srmcgann.github.io/Coordinates/resources/stars/megastar.png',
-    size: 30,
-    colorMix: 0,
-  }
-  await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
-    baseFlash = structuredClone(geometry.vertices)
-    Coordinates.ShapeFromArray(geometry, pointArray).then(res =>{
-      shapes.push(res)
-    })
-  })
- 
- 
-  var baseSpriteVerts
-  var geoOptions = {
-    shapeType: 'rect',
-    map: 'https://srmcgann.github.io/Coordinates/resources/stars/star1.png',
-    name: 'sprite',
-    roll: 0,
-    disableDepthTest: true,
-    size: 100,
-    z: 2,
-    alpha: .5,
-    colorMix: 0,
-  }
-  if(1)await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
-    for(var i = 0; i < geometry.vertices.length; i += 3){
-      geometry.vertices[i+0] = geometry.vertices[i+0] + 2 / 3 * 1
-      geometry.vertices[i+1] = geometry.vertices[i+1] - 3 / 3 * 1
-    }
-    baseSpriteVerts = structuredClone(geometry.vertices)
-    shapes.push(geometry)
-    await spriteShader.ConnectGeometry(geometry)
-  })
-
-  const CheckRows = () => {
-    var ar = GetPieceCoords(centers[centers.length-1])
-    ar.map(v=>{
-      SpawnSamplePiece(pieces[pieces.length-1].subShape.id,v[0]*2,v[1]*2-6,0)
-    })
-    ReleasePiece(pieces[pieces.length-1])
-    ReleaseCenter(centers[centers.length-1])
-    
-    var a = []
-    sampleCenters.map((sc, scIdx) => {
-      var l = GetPieceCoords(sc)
-      if(l[0][0] != 1e5){
-        a.push([...l[0], scIdx])
-      }
-    })
-    var l
-    var toDel = []
-    for(var i = 20; i >= -24; i--){
-      l=a.filter(v=>v[1]==i)
-      if(l.length == 10){
-        l.map((q, j) => {
-          x = (j-4.5)*2
-          y = (i*2-9.25)
-          z = 0
-          p = Math.atan2(y,z) - renderer.pitch
-          d = Math.hypot(y,z)
-          y = S(p) * d
-          z = C(p) * d
-          p = Math.atan2(x,z) + renderer.yaw
-          d = Math.hypot(x,z)
-          x = S(p) * d
-          z = C(p) * d
-          SpawnFlash(x, y, z, .15, .066)
-          toDel.push(q[2])
-        })
-        samples.map(v => {
-          var l = GetPieceCoords(v)
-          if(l[0][0] != 1e5 && l[0][1] > i){
-            v.oy -= 2
-          }
-        })
-        sampleCenters.map(v => {
-          var l = GetPieceCoords(v)
-          if(l[0][0] != 1e5 && l[0][1] > i){
-            v.oy -= 2
-          }
-        })
-      }
-    }
-    if(toDel.length){
-      ReleaseSampleCenter(toDel)
-      ReleaseSample(toDel)
-    }
-  }
-  
-  var flashes = []
-  const SpawnFlash = (x, y, z, life=1, redRate=1) => {
-    flashes.push({ x, y, z, life, redRate })
-  }
- 
-  const SpawnSamplePiece = (id, x=0,y=0,z=0) => {
-    //samples
-    var subShape = sampleBank.filter((pc, idx) => {
-      return pc.id == id && pc.x == 1e5
-    })
-    if(subShape.length){
-      subShape[0].baseVertices = structuredClone(baseSampleVerts)
-      subShape[0].x = 0
-      subShape[0].y = 0
-      //subShape[0].z = 0
-      samples.push({
-        subShape: subShape[0],
-        x: -1e5+1,
-        y: 1e5,
-        z: subShape[0].z -.2,
-        ox: -1 + x,
-        oy: 6.25 + y,
-        oz: 0 + z,
-        ix: -1 + x,
-        iy: 6.25 + y,
-        iz: 0 + z,
-        worldTheta: 0,
-      })
-    }
-    
-    //sampleCenters
-    var subShape = sampleCentersBank.filter((pc, idx) => {
-      return pc.id == id && pc.x == 1e5
-    })
-    if(subShape.length){
-      subShape[0].baseVertices = structuredClone(baseSampleCenterVerts)
-      subShape[0].x = 0
-      subShape[0].y = 0
-      //subShape[0].z = 0
-      sampleCenters.push({
-        subShape: subShape[0],
-        x: -1e5+1,
-        y: 1e5,
-        z: subShape[0].z -.2,
-        ox: -1 + x,
-        oy: 6.25 + y,
-        oz: 0 + z,
-        ix: -1 + x,
-        iy: 6.25 + y,
-        iz: 0 + z,
-        worldTheta: 0,
-      })
-    }
-  }
-
-  const ReleasePiece = piece => {
-    var shape = shapes.filter(v=>v.name=='pieces')[0]
-    piece.subShape.x = 1e5
-    piece.subShape.y = -1e5
-    piece.subShape.z = 0
-    piece.subShape.baseVertices = structuredClone(baseShapeVerts)
-    piece.subShape.vertIDs.map(idx => {
-      var idx2 = idx % shape.stride
-      shape.vertices[idx+0] = piece.subShape.baseVertices[idx2+0]
-      shape.vertices[idx+1] = piece.subShape.baseVertices[idx2+1]
-      shape.vertices[idx+2] = piece.subShape.baseVertices[idx2+2]
-    })
-    pieces = pieces.filter(v => v != piece)
-  }
-  
-  const ReleaseSample = sampleArray => {
-    var shape = shapes.filter(v=>v.name=='samples')[0]
-    samples = samples.filter((v, i) => {
-      if(sampleArray.filter(q=>q==i).length){
-        samples[i].subShape.x = 0
-        samples[i].subShape.y = 0
-        samples[i].subShape.z = 0
-        samples[i].subShape.baseVertices = structuredClone(baseSampleVerts)
-        samples[i].subShape.vertIDs.map(idx => {
-          var idx2 = idx % shape.stride
-          shape.vertices[idx+0] = samples[i].subShape.baseVertices[idx2+0]
-          shape.vertices[idx+1] = samples[i].subShape.baseVertices[idx2+1]
-          shape.vertices[idx+2] = samples[i].subShape.baseVertices[idx2+2]
-        })
-        return false
-      }else{
-        return true
-      }
-    })
-  }
-  
-  const ReleaseCenter = center => {
-    var shape = shapes.filter(v=>v.name=='centers')[0]
-    center.subShape.x = 1e5
-    center.subShape.y = -1e5
-    center.subShape.z = 0
-    center.subShape.baseVertices = structuredClone(baseCenterVerts)
-    center.subShape.vertIDs.map(idx => {
-      var idx2 = idx % shape.stride
-      shape.vertices[idx+0] = center.subShape.baseVertices[idx2+0]
-      shape.vertices[idx+1] = center.subShape.baseVertices[idx2+1]
-      shape.vertices[idx+2] = center.subShape.baseVertices[idx2+2]
-    })
-    centers = centers.filter(v => v != center)
-  }
-  
-  
-  const ReleaseSampleCenter = sampleCenterArray => {
-    var shape = shapes.filter(v=>v.name=='sampleCenters')[0]
-    sampleCenters = sampleCenters.filter((v, i) => {
-      if(sampleCenterArray.filter(q=>q==i).length){
-        sampleCenters[i].subShape.x = 0
-        sampleCenters[i].subShape.y = 0
-        sampleCenters[i].subShape.z = 0
-        sampleCenters[i].subShape.baseVertices = structuredClone(baseSampleCenterVerts)
-        sampleCenters[i].subShape.vertIDs.map(idx => {
-          var idx2 = idx % shape.stride
-          shape.vertices[idx+0] = sampleCenters[i].subShape.baseVertices[idx2+0]
-          shape.vertices[idx+1] = sampleCenters[i].subShape.baseVertices[idx2+1]
-          shape.vertices[idx+2] = sampleCenters[i].subShape.baseVertices[idx2+2]
-        })
-        return false
-      }else{
-        return true
-      }
-    })
-  }
-  
-  const SpawnPiece = (id, x=0,y=0,z=0) => {
-    // centers
-    var subShape = centersBank.filter((pc, idx) => {
-      return pc.id == id && pc.x == 1e5
-    })
-    if(subShape.length){
-      subShape[0].baseVertices = structuredClone(baseCenterVerts)
-      subShape[0].x = 0
-      subShape[0].y = 0
-      subShape[0].z = 0
-      centers.push({
-        subShape: subShape[0],
-        x: -1e5+1,
-        y: 1e5,
-        z: subShape[0].z -.2,
-        ox: -1 + x,
-        oy: 6.25 + y,
-        oz: 0 + z,
-        ix: -1 + x,
-        iy: 6.25 + y,
-        iz: 0 + z,
-        worldTheta: 0,
-      })
-    }else{
-      console.log('no piece generated!')
-    }
-
-    // pieces
-    var subShape = pieceBank.filter((pc, idx) => {
-      return pc.id == id && pc.x == 1e5
-    })
-    if(subShape.length){
-      var s = shapes.filter(v=>v.name=='pieces')[0]
-      s.vertices = structuredClone(baseShapeVerts)
-      subShape[0].baseVertices = structuredClone(baseShapeVerts)
-      subShape[0].x = 0
-      subShape[0].z = pieceBank[subShape[0].id].z
-      pieces.push({
-        subShape: subShape[0],
-        x: -1e5+1,
-        y: 1e5,
-        z: subShape[0].z -.2,
-        ox: -1 + x,
-        oy: 6.25 + y,
-        oz: 0 + z,
-        ix: -1 + x,
-        iy: 6.25 + y,
-        iz: 0 + z,
-        worldTheta: 0,
-      })
-    }
-    SpawnFlash(-1, -2, 0, 2, 2)
-  }
-  
-  if(0) Coordinates.LoadFPSControls(renderer, {
-    flyMode: true,
-    mSpeed: .5,
-    crossharSel: 2,
-    crosshairSize: .5,
-  })
-  
-  renderer.z = 46 * (1080/renderer.c.height)
-  SpawnPiece(Rn() * 7 | 0)
-  //SpawnPiece(4)
-  
-  window.Draw = () => {
-    var t = renderer.frameCount / 60
-    
-    //renderer.yaw = S(t/2)/32
-    //renderer.pitch = C(t/2)/32
-    
-    if(!((t*60|0)%(240/(1+level/4)|0))){
-      if(Math.abs(boardTheta) < .001){
-        if(Test('down')){
-          pieces[pieces.length-1].oy -= 2
-          centers[centers.length-1].oy -= 2
-        }else{
-          CheckRows()
-          SpawnPiece(Rn() * 7 | 0)
-        }
-      }
-    }
-    
-    DoKeys()
-    
-    renderer.Clear()
-    shapes.forEach(shape => {
-      switch(shape.name){
-        case 'background':
-          shape.yaw -= C(t/16) / 500 - .002
-          shapes.filter(v=>v.name=='board')[0].shader.datasets[0].optionalUniforms.filter(v=>v.name=='refraction2')[0].theta = shape.yaw
-          renderer.Draw(shape)
-        break
-        case 'samples':
-          samples.map(sample => {
-            sample.subShape.x = sample.x
-            sample.subShape.y = sample.y
-            sample.subShape.z = sample.z
-            var ox = sample.ox
-            var oy = sample.oy
-            var ix = sample.ix += (sample.ox - sample.ix) / 5
-            var iy = sample.iy += (sample.oy - sample.iy) / 3
-            p = Math.atan2(ix, iy) + sample.worldTheta
-            d = Math.hypot(ix, iy)
-            ix = S(p) * d
-            iy = C(p) * d
-            sample.subShape.vertIDs.map(idx => {
-              var idx2 = idx % shape.stride
-              x = sample.subShape.baseVertices[idx2 + 0] + sample.subShape.x
-              y = sample.subShape.baseVertices[idx2 + 1] + sample.subShape.y - 8
-              p = Math.atan2(x, y) + sample.worldTheta
-              d = Math.hypot(x, y)
-              x = S(p) * d
-              y = C(p) * d
-              shape.vertices[idx + 0] = x + ix
-              shape.vertices[idx + 1] = y + iy + 8
-              shape.vertices[idx + 2] = (sample.subShape.baseVertices[idx2 + 2] * 1 + sample.subShape.z + sample.oz) * .5 -.05
-            })
-          })
-          renderer.Draw(shape)
-          if(Math.abs(boardTheta) > .001){
-            var theta = boardThetaInterval * (boardTheta > 0 ? -1: 1)
-            samples.map((v, i) => {
-              v.worldTheta += theta / 6
-            })
-          }
-        break
-        case 'pieces':
-          pieces.map(piece => {
-            piece.subShape.x = piece.x
-            piece.subShape.y = piece.y
-            piece.subShape.z = piece.z
-            var ox = piece.ox
-            var oy = piece.oy
-            var ix = piece.ix += (piece.ox - piece.ix) / 5
-            var iy = piece.iy += (piece.oy - piece.iy) / 3
-            p = Math.atan2(ix, iy) + piece.worldTheta
-            d = Math.hypot(ix, iy)
-            ix = S(p) * d
-            iy = C(p) * d
-            piece.subShape.vertIDs.map(idx => {
-              var idx2 = idx % shape.stride
-              x = piece.subShape.baseVertices[idx2 + 0] + piece.subShape.x
-              y = piece.subShape.baseVertices[idx2 + 1] + piece.subShape.y - 8
-              p = Math.atan2(x, y) + piece.worldTheta
-              d = Math.hypot(x, y)
-              x = S(p) * d
-              y = C(p) * d
-              x = shape.vertices[idx + 0] = x + ix
-              y = shape.vertices[idx + 1] = y + iy + 8
-              z = shape.vertices[idx + 2] = (piece.subShape.baseVertices[idx2 + 2] * 1 + piece.subShape.z) * .05 -.2
-            })
-          })
-          //shape.disableDepthTest = true
-          renderer.Draw(shape)
           
-          if(showDropLocation){
-            var pc = centers[centers.length - 1]
-            var tyc = pc.oy
-            while(Test('down')) pc.oy -= 2
-
-            var coords = GetPieceCoords(pc)
-            coords.map(v=>{
-              x = v[0] * 2 - .85
-              y = v[1] * 2 - .85
-              z = 0
-              var ar = Coordinates.GetShaderCoord(x,y,z,{
-                roll: 0,
-                pitch: 0,
-                yaw: 0,
-                x: 0,
-                y: 0,
-                z: 0,
-              }, renderer)
-              
-              centers[centers.length-1].oy = tyc
-              var s = 20 / 1080 * Coordinates.Overlay.c.height
-              //ctx.fillStyle = `hsla(${t*5e4},99%,80%,.5)`
-              ctx.strokeStyle = `#3335`
-              ctx.lineWidth = s/6
-              ctx.strokeRect(ar[0]-s/1.66,ar[1]-s/3,s,s)
-              var s = 18 / 1080 * Coordinates.Overlay.c.height
-              ctx.fillStyle = `#fff5`
-              ctx.fillRect(ar[0]-s/1.66,ar[1]-s/3,s,s)
+          for(var i = 7; i < 7; i++){
+            pieceBank[i].x = pieceBank[i%7].x
+            pieceBank[i].y = pieceBank[i%7].y
+            pieceBank[i].z = pieceBank[i%7].z
+            pieceBank[i].vertIDs = structuredClone(pieceBank[i%7].vertIDs).map(v => {
+              return v + res.stride * ((i/7|0)+1)
             })
           }
           
-        break
-        case 'centers':
-          if(Math.abs(boardTheta) > .001){
-            var theta = boardThetaInterval * (boardTheta > 0 ? -1: 1)
-            centers.map((v, i) => {
-              if(i < centers.length - 1){
-                v.worldTheta += theta / 6
+          for(var i = 0 ; i < res.vstate.length; i += 3){
+            res.vertices[i+0] += 1e5
+            res.vertices[i+1] += -1e5
+            res.vertices[i+2] += 0
+          }
+          shapes.push(res)
+          baseShapeVerts = structuredClone(res.vertices.slice(0, res.stride))
+          await shader.ConnectGeometry(res)
+        })
+      })
+      
+      var baseSampleVerts
+      var pointArray = Array(iPc*4).fill().map((v,i) => [0,0,0])
+      var geoOptions = {
+        shapeType: 'obj',
+        url: 'https://srmcgann.github.io/quadtris/samplePieces.obj?2',
+        map: tetraminoTexture,
+        name: 'samples',
+        //disableDepthTest: true,
+        scaleX: -.95,
+        scaleY: -.95,
+        scaleZ: .25,
+        objZ: -.25,
+        cullFace: '',
+        colorMix: 0,
+      }
+      await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+        await Coordinates.ShapeFromArray(geometry, pointArray).then(async res =>{
+          res.isShapeArray = false
+          var zSpacing = []
+          var sp = .5
+          for(var i = 0; i < 7; i ++){
+            zSpacing.push((i-3.5)*sp)
+          }
+          
+          for(var i = 0; i < res.stride; i += 9){
+            var tgt = -1
+            var x1 = res.vertices[i+0]
+            var y1 = res.vertices[i+1]
+            var z1 = res.vertices[i+2]
+            var x2 = res.vertices[i+3]
+            var y2 = res.vertices[i+4]
+            var z2 = res.vertices[i+5]
+            var x3 = res.vertices[i+6]
+            var y3 = res.vertices[i+7]
+            var z3 = res.vertices[i+8]
+            var ax = (x1+x2+x3) / 3
+            var ay = (y1+y2+y3) / 3
+            var az = (z1+z2+z3) / 3
+            var mind = 6e6
+            zSpacing.map((v, i) => {
+              if((d=Math.abs(v-az)) < mind){
+                mind = d
+                tgt = i
               }
             })
-          }
-        break
-        case 'sampleCenters':
-          if(Math.abs(boardTheta) > .001){
-            var theta = boardThetaInterval * (boardTheta > 0 ? -1: 1)
-            sampleCenters.map((v, i) => {
-              v.worldTheta += theta / 6
-            })
-          }
-        break
-        case 'flashes':
-          flashes = flashes.filter(v=>v.life>0)
-          shape.shapeData.map((subShape, sIdx) => {
-            if(sIdx < flashes.length){
-              for(var i = 0; i < shape.stride; i +=3){
-                var idx = sIdx * shape.stride + i
-                x = baseFlash[i + 0] * flashes[sIdx].life
-                y = baseFlash[i + 1] * flashes[sIdx].life+8
-                z = baseFlash[i + 2] * flashes[sIdx].life
-                shape.vstate[idx+0] = x + flashes[sIdx].x
-                shape.vstate[idx+1] = y + flashes[sIdx].y
-                shape.vstate[idx+2] = z + flashes[sIdx].z
-                shape.vertices[idx+0] = x + flashes[sIdx].x
-                shape.vertices[idx+1] = y + flashes[sIdx].y
-                shape.vertices[idx+2] = z + flashes[sIdx].z
-              }
-              flashes[sIdx].life -= .1 * flashes[sIdx].redRate
-            }else{
-              for(var i = 0; i < shape.stride; i +=3){
-                var idx = sIdx * shape.stride + i
-                shape.vstate[idx+0] = 1e5
-                shape.vstate[idx+1] = 1e5
-                shape.vstate[idx+2] = 0
-                shape.vertices[idx+0] = 1e5
-                shape.vertices[idx+1] = 1e5
-                shape.vertices[idx+2] = 0
+            if(tgt != -1){
+              sampleBank[tgt].z = -zSpacing[tgt]
+              for(var m = 0; m < 3; m++){
+                sampleBank[tgt].vertIDs.push(i+m*3)
               }
             }
-          })
-          renderer.Draw(shape)
-        break
-        case 'board':
-          if(Math.abs(boardTheta) > .001){
-            var theta = boardThetaInterval * (boardTheta > 0 ? -1: 1)
-            shape.roll += theta / 6
-            boardTheta += theta / 6
-            pieces.map((v, i) => {
-              if(i < pieces.length - 1){
-                v.worldTheta += theta / 6
+          }
+          
+          for(var i = 7; i < iPc*4*10; i++){
+            sampleBank[i].x = sampleBank[i%7].x
+            sampleBank[i].y = sampleBank[i%7].y
+            sampleBank[i].z = sampleBank[i%7].z
+            sampleBank[i].vertIDs = structuredClone(sampleBank[i%7].vertIDs).map(v => {
+              return v + res.stride * ((i/7|0)+1)
+            })
+          }
+          
+          for(var i = 0 ; i < res.vstate.length; i += 3){
+            res.vertices[i+0] += 1e5
+            res.vertices[i+1] += -1e5
+            res.vertices[i+2] += 0
+          }
+          shapes.push(res)
+          baseSampleVerts = structuredClone(res.vertices.slice(0, res.stride))
+          await shader.ConnectGeometry(res)
+        })
+      })
+      
+      var baseCenterVerts
+      var pointArray = Array(7).fill().map((v,i) => [0,0,0])
+      var geoOptions = {
+        shapeType: 'obj',
+        url: 'https://srmcgann.github.io/quadtris/centers.obj',
+        name: 'centers',
+        scaleX: -.95,
+        scaleY: -.95,
+        scaleZ: .25,
+        objZ: -.25,
+      }
+      await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+        await Coordinates.ShapeFromArray(geometry, pointArray).then(async res =>{
+          res.isShapeArray = false
+          var zSpacing = []
+          var sp = .5
+          for(var i = 0; i < 7; i ++){
+            zSpacing.push((i-3.5)*sp)
+          }
+          
+          for(var i = 0; i < res.stride; i += 9){
+            var tgt = -1
+            var x1 = res.vertices[i+0]
+            var y1 = res.vertices[i+1]
+            var z1 = res.vertices[i+2]
+            var x2 = res.vertices[i+3]
+            var y2 = res.vertices[i+4]
+            var z2 = res.vertices[i+5]
+            var x3 = res.vertices[i+6]
+            var y3 = res.vertices[i+7]
+            var z3 = res.vertices[i+8]
+            var ax = (x1+x2+x3) / 3
+            var ay = (y1+y2+y3) / 3
+            var az = (z1+z2+z3) / 3
+            var mind = 6e6
+            zSpacing.map((v, i) => {
+              if((d=Math.abs(v-az)) < mind){
+                mind = d
+                tgt = i
               }
             })
-          }else{
-            boardTheta = 0
+            if(tgt != -1){
+              centersBank[tgt].z = -zSpacing[tgt]
+              for(var m = 0; m < 3; m++){
+                centersBank[tgt].vertIDs.push(i+m*3)
+              }
+            }
           }
-          renderer.Draw(shape)
-        break
-        case 'sprite':
+          
+          for(var i = 7; i < 7; i++){
+            centersBank[i].x = centersBank[i%7].x
+            centersBank[i].y = centersBank[i%7].y
+            centersBank[i].z = centersBank[i%7].z
+            centersBank[i].vertIDs = structuredClone(centersBank[i%7].vertIDs).map(v => {
+              return v + res.stride * ((i/7|0)+1)
+            })
+          }
+          
+          for(var i = 0 ; i < res.vstate.length; i += 3){
+            res.vertices[i+0] += 1e5
+            res.vertices[i+1] += -1e5
+            res.vertices[i+2] += 0
+          }
+          shapes.push(res)
+          baseCenterVerts = structuredClone(res.vertices.slice(0, res.stride))
+        })
+      })
+      
+      var baseSampleCenterVerts
+      var pointArray = Array(iPc*4).fill().map((v,i) => [0,0,0])
+      var geoOptions = {
+        shapeType: 'obj',
+        url: 'https://srmcgann.github.io/quadtris/sampleCenters.obj',
+        name: 'sampleCenters',
+        scaleX: -.95,
+        scaleY: -.95,
+        scaleZ: .25,
+        objZ: -.25,
+      }
+      await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+        await Coordinates.ShapeFromArray(geometry, pointArray).then(async res =>{
+          res.isShapeArray = false
+          var zSpacing = []
+          var sp = .5
+          for(var i = 0; i < 7; i ++){
+            zSpacing.push((i-3.5)*sp)
+          }
+          
+          for(var i = 0; i < res.stride; i += 9){
+            var tgt = -1
+            var x1 = res.vertices[i+0]
+            var y1 = res.vertices[i+1]
+            var z1 = res.vertices[i+2]
+            var x2 = res.vertices[i+3]
+            var y2 = res.vertices[i+4]
+            var z2 = res.vertices[i+5]
+            var x3 = res.vertices[i+6]
+            var y3 = res.vertices[i+7]
+            var z3 = res.vertices[i+8]
+            var ax = (x1+x2+x3) / 3
+            var ay = (y1+y2+y3) / 3
+            var az = (z1+z2+z3) / 3
+            var mind = 6e6
+            zSpacing.map((v, i) => {
+              if((d=Math.abs(v-az)) < mind){
+                mind = d
+                tgt = i
+              }
+            })
+            if(tgt != -1){
+              sampleCentersBank[tgt].z = -zSpacing[tgt]
+              for(var m = 0; m < 3; m++){
+                sampleCentersBank[tgt].vertIDs.push(i+m*3)
+              }
+            }
+          }
+          
+          for(var i = 7; i < iPc*4*10; i++){
+            sampleCentersBank[i].x = sampleCentersBank[i%7].x
+            sampleCentersBank[i].y = sampleCentersBank[i%7].y
+            sampleCentersBank[i].z = sampleCentersBank[i%7].z
+            sampleCentersBank[i].vertIDs = structuredClone(sampleCentersBank[i%7].vertIDs).map(v => {
+              return v + res.stride * ((i/7|0)+1)
+            })
+          }
+          
+          for(var i = 0 ; i < res.vstate.length; i += 3){
+            res.vertices[i+0] += 1e5
+            res.vertices[i+1] += -1e5
+            res.vertices[i+2] += 0
+          }
+          shapes.push(res)
+          baseSampleCenterVerts = structuredClone(res.vertices.slice(0, res.stride))
+        })
+      })
+      
+      
+      var geoOptions = {
+        shapeType: 'obj',
+        url: 'https://srmcgann.github.io/quadtris/board.obj',
+        map: 'https://srmcgann.github.io/quadtris/board_grey.png',
+        name: 'board',
+        cullFace: 'back',
+        disableDepthTest: false,
+        //alpha: .5,
+        scaleX: -1.006,
+        scaleY: 1.006,
+        scaleZ: .25,
+        y: 9,
+        color: 0x000000,
+        colorMix: .75,
+      }
+      await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+        for(var i = 0; i < geometry.vertices.length; i+=3){
+          geometry.vertices[i+0] += 0
+          geometry.vertices[i+1] += 0
+          geometry.vertices[i+2] += 0
+        }
+        shapes.push(geometry)
+        await boardShader.ConnectGeometry(geometry)
+     })
+      
+      
+      var iFc = 100
+      var baseFlash
+      var pointArray = Array(iFc).fill().map((v, i) => {
+        return [0,0,0]
+      })
+      var geoOptions = {
+        shapeType: 'sprite',
+        name: 'flashes',
+        map: 'https://srmcgann.github.io/Coordinates/resources/stars/megastar.png',
+        size: 30,
+        colorMix: 0,
+      }
+      await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+        baseFlash = structuredClone(geometry.vertices)
+        Coordinates.ShapeFromArray(geometry, pointArray).then(res =>{
+          shapes.push(res)
+        })
+      })
+     
+     
+      var baseSpriteVerts
+      var geoOptions = {
+        shapeType: 'rect',
+        map: 'https://srmcgann.github.io/Coordinates/resources/stars/star1.png',
+        name: 'sprite',
+        roll: 0,
+        disableDepthTest: true,
+        size: 100,
+        z: 2,
+        alpha: .5,
+        colorMix: 0,
+      }
+      if(1)await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+        for(var i = 0; i < geometry.vertices.length; i += 3){
+          geometry.vertices[i+0] = geometry.vertices[i+0] + 2 / 3 * 1
+          geometry.vertices[i+1] = geometry.vertices[i+1] - 3 / 3 * 1
+        }
+        baseSpriteVerts = structuredClone(geometry.vertices)
+        shapes.push(geometry)
+        await spriteShader.ConnectGeometry(geometry)
+      })
+
+      const CheckRows = () => {
+        var ar = GetPieceCoords(centers[centers.length-1])
+        ar.map(v=>{
+          SpawnSamplePiece(pieces[pieces.length-1].subShape.id,v[0]*2,v[1]*2-6,0)
+        })
+        ReleasePiece(pieces[pieces.length-1])
+        ReleaseCenter(centers[centers.length-1])
         
-          shape.roll += .0015
-          shape.disableDepthTest = false
-          shape.shader.datasets[0].optionalLighting[0].value = 2
-          shape.z = 2
-          shape.y = 10
-          for(var i = 0; i < shape.vertices.length; i += 3){
-            shape.vertices[i+0] = baseSpriteVerts[i+0]*1.5
-            shape.vertices[i+1] = baseSpriteVerts[i+1]*1.5
-            shape.vertices[i+2] = baseSpriteVerts[i+2]*1.5
+        var a = []
+        sampleCenters.map((sc, scIdx) => {
+          var l = GetPieceCoords(sc)
+          if(l[0][0] != 1e5){
+            a.push([...l[0], scIdx])
           }
-          renderer.Draw(shape)
-          shape.shader.datasets[0].optionalLighting[0].value = 1
-          shape.z = -.1
-          shape.y = 9.5
-          //shape.roll += Math.PI/4
-          for(var i = 0; i < shape.vertices.length; i += 3){
-            shape.vertices[i+0] = baseSpriteVerts[i+0]/2
-            shape.vertices[i+1] = baseSpriteVerts[i+1]/2
-            shape.vertices[i+2] = baseSpriteVerts[i+2]/2
+        })
+        var l
+        var toDel = []
+        for(var i = 20; i >= -24; i--){
+          l=a.filter(v=>v[1]==i)
+          if(l.length == 10){
+            l.map((q, j) => {
+              x = (j-4.5)*2
+              y = (i*2-9.25)
+              z = 0
+              p = Math.atan2(y,z) - renderer.pitch
+              d = Math.hypot(y,z)
+              y = S(p) * d
+              z = C(p) * d
+              p = Math.atan2(x,z) + renderer.yaw
+              d = Math.hypot(x,z)
+              x = S(p) * d
+              z = C(p) * d
+              SpawnFlash(x, y, z, .15, .066)
+              toDel.push(q[2])
+            })
+            samples.map(v => {
+              var l = GetPieceCoords(v)
+              if(l[0][0] != 1e5 && l[0][1] > i){
+                v.oy -= 2
+              }
+            })
+            sampleCenters.map(v => {
+              var l = GetPieceCoords(v)
+              if(l[0][0] != 1e5 && l[0][1] > i){
+                v.oy -= 2
+              }
+            })
           }
-          renderer.Draw(shape)
-          //shape.roll -= Math.PI/4
-        break
-        default:
-          //renderer.Draw(shape)
-        break
+        }
+        if(toDel.length){
+          ReleaseSampleCenter(toDel)
+          ReleaseSample(toDel)
+        }
       }
-    })
-  }
-  
-</script>
+      
+      var flashes = []
+      const SpawnFlash = (x, y, z, life=1, redRate=1) => {
+        flashes.push({ x, y, z, life, redRate })
+      }
+     
+      const SpawnSamplePiece = (id, x=0,y=0,z=0) => {
+        //samples
+        var subShape = sampleBank.filter((pc, idx) => {
+          return pc.id == id && pc.x == 1e5
+        })
+        if(subShape.length){
+          subShape[0].baseVertices = structuredClone(baseSampleVerts)
+          subShape[0].x = 0
+          subShape[0].y = 0
+          //subShape[0].z = 0
+          samples.push({
+            subShape: subShape[0],
+            x: -1e5+1,
+            y: 1e5,
+            z: subShape[0].z -.2,
+            ox: -1 + x,
+            oy: 6.25 + y,
+            oz: 0 + z,
+            ix: -1 + x,
+            iy: 6.25 + y,
+            iz: 0 + z,
+            worldTheta: 0,
+          })
+        }
+        
+        //sampleCenters
+        var subShape = sampleCentersBank.filter((pc, idx) => {
+          return pc.id == id && pc.x == 1e5
+        })
+        if(subShape.length){
+          subShape[0].baseVertices = structuredClone(baseSampleCenterVerts)
+          subShape[0].x = 0
+          subShape[0].y = 0
+          //subShape[0].z = 0
+          sampleCenters.push({
+            subShape: subShape[0],
+            x: -1e5+1,
+            y: 1e5,
+            z: subShape[0].z -.2,
+            ox: -1 + x,
+            oy: 6.25 + y,
+            oz: 0 + z,
+            ix: -1 + x,
+            iy: 6.25 + y,
+            iz: 0 + z,
+            worldTheta: 0,
+          })
+        }
+      }
+
+      const ReleasePiece = piece => {
+        var shape = shapes.filter(v=>v.name=='pieces')[0]
+        piece.subShape.x = 1e5
+        piece.subShape.y = -1e5
+        piece.subShape.z = 0
+        piece.subShape.baseVertices = structuredClone(baseShapeVerts)
+        piece.subShape.vertIDs.map(idx => {
+          var idx2 = idx % shape.stride
+          shape.vertices[idx+0] = piece.subShape.baseVertices[idx2+0]
+          shape.vertices[idx+1] = piece.subShape.baseVertices[idx2+1]
+          shape.vertices[idx+2] = piece.subShape.baseVertices[idx2+2]
+        })
+        pieces = pieces.filter(v => v != piece)
+      }
+      
+      const ReleaseSample = sampleArray => {
+        var shape = shapes.filter(v=>v.name=='samples')[0]
+        samples = samples.filter((v, i) => {
+          if(sampleArray.filter(q=>q==i).length){
+            samples[i].subShape.x = 0
+            samples[i].subShape.y = 0
+            samples[i].subShape.z = 0
+            samples[i].subShape.baseVertices = structuredClone(baseSampleVerts)
+            samples[i].subShape.vertIDs.map(idx => {
+              var idx2 = idx % shape.stride
+              shape.vertices[idx+0] = samples[i].subShape.baseVertices[idx2+0]
+              shape.vertices[idx+1] = samples[i].subShape.baseVertices[idx2+1]
+              shape.vertices[idx+2] = samples[i].subShape.baseVertices[idx2+2]
+            })
+            return false
+          }else{
+            return true
+          }
+        })
+      }
+      
+      const ReleaseCenter = center => {
+        var shape = shapes.filter(v=>v.name=='centers')[0]
+        center.subShape.x = 1e5
+        center.subShape.y = -1e5
+        center.subShape.z = 0
+        center.subShape.baseVertices = structuredClone(baseCenterVerts)
+        center.subShape.vertIDs.map(idx => {
+          var idx2 = idx % shape.stride
+          shape.vertices[idx+0] = center.subShape.baseVertices[idx2+0]
+          shape.vertices[idx+1] = center.subShape.baseVertices[idx2+1]
+          shape.vertices[idx+2] = center.subShape.baseVertices[idx2+2]
+        })
+        centers = centers.filter(v => v != center)
+      }
+      
+      
+      const ReleaseSampleCenter = sampleCenterArray => {
+        var shape = shapes.filter(v=>v.name=='sampleCenters')[0]
+        sampleCenters = sampleCenters.filter((v, i) => {
+          if(sampleCenterArray.filter(q=>q==i).length){
+            sampleCenters[i].subShape.x = 0
+            sampleCenters[i].subShape.y = 0
+            sampleCenters[i].subShape.z = 0
+            sampleCenters[i].subShape.baseVertices = structuredClone(baseSampleCenterVerts)
+            sampleCenters[i].subShape.vertIDs.map(idx => {
+              var idx2 = idx % shape.stride
+              shape.vertices[idx+0] = sampleCenters[i].subShape.baseVertices[idx2+0]
+              shape.vertices[idx+1] = sampleCenters[i].subShape.baseVertices[idx2+1]
+              shape.vertices[idx+2] = sampleCenters[i].subShape.baseVertices[idx2+2]
+            })
+            return false
+          }else{
+            return true
+          }
+        })
+      }
+      
+      const SpawnPiece = (id, x=0,y=0,z=0) => {
+        // centers
+        var subShape = centersBank.filter((pc, idx) => {
+          return pc.id == id && pc.x == 1e5
+        })
+        if(subShape.length){
+          subShape[0].baseVertices = structuredClone(baseCenterVerts)
+          subShape[0].x = 0
+          subShape[0].y = 0
+          subShape[0].z = 0
+          centers.push({
+            subShape: subShape[0],
+            x: -1e5+1,
+            y: 1e5,
+            z: subShape[0].z -.2,
+            ox: -1 + x,
+            oy: 6.25 + y,
+            oz: 0 + z,
+            ix: -1 + x,
+            iy: 6.25 + y,
+            iz: 0 + z,
+            worldTheta: 0,
+          })
+        }else{
+          console.log('no piece generated!')
+        }
+
+        // pieces
+        var subShape = pieceBank.filter((pc, idx) => {
+          return pc.id == id && pc.x == 1e5
+        })
+        if(subShape.length){
+          var s = shapes.filter(v=>v.name=='pieces')[0]
+          s.vertices = structuredClone(baseShapeVerts)
+          subShape[0].baseVertices = structuredClone(baseShapeVerts)
+          subShape[0].x = 0
+          subShape[0].z = pieceBank[subShape[0].id].z
+          pieces.push({
+            subShape: subShape[0],
+            x: -1e5+1,
+            y: 1e5,
+            z: subShape[0].z -.2,
+            ox: -1 + x,
+            oy: 6.25 + y,
+            oz: 0 + z,
+            ix: -1 + x,
+            iy: 6.25 + y,
+            iz: 0 + z,
+            worldTheta: 0,
+          })
+        }
+        SpawnFlash(-1, -2, 0, 2, 2)
+      }
+      
+      if(0) Coordinates.LoadFPSControls(renderer, {
+        flyMode: true,
+        mSpeed: .5,
+        crossharSel: 2,
+        crosshairSize: .5,
+      })
+      
+      renderer.z = 46 * (1080/renderer.c.height)
+      SpawnPiece(Rn() * 7 | 0)
+      //SpawnPiece(4)
+      
+      window.Draw = () => {
+        var t = renderer.frameCount / 60
+        
+        //renderer.yaw = S(t/2)/32
+        //renderer.pitch = C(t/2)/32
+        
+        if(!((t*60|0)%(240/(1+level/4)|0))){
+          if(Math.abs(boardTheta) < .001){
+            if(Test('down')){
+              pieces[pieces.length-1].oy -= 2
+              centers[centers.length-1].oy -= 2
+            }else{
+              CheckRows()
+              SpawnPiece(Rn() * 7 | 0)
+            }
+          }
+        }
+        
+        DoKeys()
+        
+        renderer.Clear()
+        shapes.forEach(shape => {
+          switch(shape.name){
+            case 'background':
+              shape.yaw -= C(t/16) / 500 - .002
+              shapes.filter(v=>v.name=='board')[0].shader.datasets[0].optionalUniforms.filter(v=>v.name=='refraction2')[0].theta = shape.yaw
+              renderer.Draw(shape)
+            break
+            case 'samples':
+              samples.map(sample => {
+                sample.subShape.x = sample.x
+                sample.subShape.y = sample.y
+                sample.subShape.z = sample.z
+                var ox = sample.ox
+                var oy = sample.oy
+                var ix = sample.ix += (sample.ox - sample.ix) / 5
+                var iy = sample.iy += (sample.oy - sample.iy) / 3
+                p = Math.atan2(ix, iy) + sample.worldTheta
+                d = Math.hypot(ix, iy)
+                ix = S(p) * d
+                iy = C(p) * d
+                sample.subShape.vertIDs.map(idx => {
+                  var idx2 = idx % shape.stride
+                  x = sample.subShape.baseVertices[idx2 + 0] + sample.subShape.x
+                  y = sample.subShape.baseVertices[idx2 + 1] + sample.subShape.y - 8
+                  p = Math.atan2(x, y) + sample.worldTheta
+                  d = Math.hypot(x, y)
+                  x = S(p) * d
+                  y = C(p) * d
+                  shape.vertices[idx + 0] = x + ix
+                  shape.vertices[idx + 1] = y + iy + 8
+                  shape.vertices[idx + 2] = (sample.subShape.baseVertices[idx2 + 2] * 1 + sample.subShape.z + sample.oz) * .5 -.05
+                })
+              })
+              renderer.Draw(shape)
+              if(Math.abs(boardTheta) > .001){
+                var theta = boardThetaInterval * (boardTheta > 0 ? -1: 1)
+                samples.map((v, i) => {
+                  v.worldTheta += theta / 6
+                })
+              }
+            break
+            case 'pieces':
+              pieces.map(piece => {
+                piece.subShape.x = piece.x
+                piece.subShape.y = piece.y
+                piece.subShape.z = piece.z
+                var ox = piece.ox
+                var oy = piece.oy
+                var ix = piece.ix += (piece.ox - piece.ix) / 5
+                var iy = piece.iy += (piece.oy - piece.iy) / 3
+                p = Math.atan2(ix, iy) + piece.worldTheta
+                d = Math.hypot(ix, iy)
+                ix = S(p) * d
+                iy = C(p) * d
+                piece.subShape.vertIDs.map(idx => {
+                  var idx2 = idx % shape.stride
+                  x = piece.subShape.baseVertices[idx2 + 0] + piece.subShape.x
+                  y = piece.subShape.baseVertices[idx2 + 1] + piece.subShape.y - 8
+                  p = Math.atan2(x, y) + piece.worldTheta
+                  d = Math.hypot(x, y)
+                  x = S(p) * d
+                  y = C(p) * d
+                  x = shape.vertices[idx + 0] = x + ix
+                  y = shape.vertices[idx + 1] = y + iy + 8
+                  z = shape.vertices[idx + 2] = (piece.subShape.baseVertices[idx2 + 2] * 1 + piece.subShape.z) * .05 -.2
+                })
+              })
+              //shape.disableDepthTest = true
+              renderer.Draw(shape)
+              
+              if(showDropLocation){
+                var pc = centers[centers.length - 1]
+                var tyc = pc.oy
+                while(Test('down')) pc.oy -= 2
+
+                var coords = GetPieceCoords(pc)
+                coords.map(v=>{
+                  x = v[0] * 2 - .85
+                  y = v[1] * 2 - .85
+                  z = 0
+                  var ar = Coordinates.GetShaderCoord(x,y,z,{
+                    roll: 0,
+                    pitch: 0,
+                    yaw: 0,
+                    x: 0,
+                    y: 0,
+                    z: 0,
+                  }, renderer)
+                  
+                  centers[centers.length-1].oy = tyc
+                  var s = 20 / 1080 * Coordinates.Overlay.c.height
+                  //ctx.fillStyle = `hsla(${t*5e4},99%,80%,.5)`
+                  ctx.strokeStyle = `#3335`
+                  ctx.lineWidth = s/6
+                  ctx.strokeRect(ar[0]-s/1.66,ar[1]-s/3,s,s)
+                  var s = 18 / 1080 * Coordinates.Overlay.c.height
+                  ctx.fillStyle = `#fff5`
+                  ctx.fillRect(ar[0]-s/1.66,ar[1]-s/3,s,s)
+                })
+              }
+              
+            break
+            case 'centers':
+              if(Math.abs(boardTheta) > .001){
+                var theta = boardThetaInterval * (boardTheta > 0 ? -1: 1)
+                centers.map((v, i) => {
+                  if(i < centers.length - 1){
+                    v.worldTheta += theta / 6
+                  }
+                })
+              }
+            break
+            case 'sampleCenters':
+              if(Math.abs(boardTheta) > .001){
+                var theta = boardThetaInterval * (boardTheta > 0 ? -1: 1)
+                sampleCenters.map((v, i) => {
+                  v.worldTheta += theta / 6
+                })
+              }
+            break
+            case 'flashes':
+              flashes = flashes.filter(v=>v.life>0)
+              shape.shapeData.map((subShape, sIdx) => {
+                if(sIdx < flashes.length){
+                  for(var i = 0; i < shape.stride; i +=3){
+                    var idx = sIdx * shape.stride + i
+                    x = baseFlash[i + 0] * flashes[sIdx].life
+                    y = baseFlash[i + 1] * flashes[sIdx].life+8
+                    z = baseFlash[i + 2] * flashes[sIdx].life
+                    shape.vstate[idx+0] = x + flashes[sIdx].x
+                    shape.vstate[idx+1] = y + flashes[sIdx].y
+                    shape.vstate[idx+2] = z + flashes[sIdx].z
+                    shape.vertices[idx+0] = x + flashes[sIdx].x
+                    shape.vertices[idx+1] = y + flashes[sIdx].y
+                    shape.vertices[idx+2] = z + flashes[sIdx].z
+                  }
+                  flashes[sIdx].life -= .1 * flashes[sIdx].redRate
+                }else{
+                  for(var i = 0; i < shape.stride; i +=3){
+                    var idx = sIdx * shape.stride + i
+                    shape.vstate[idx+0] = 1e5
+                    shape.vstate[idx+1] = 1e5
+                    shape.vstate[idx+2] = 0
+                    shape.vertices[idx+0] = 1e5
+                    shape.vertices[idx+1] = 1e5
+                    shape.vertices[idx+2] = 0
+                  }
+                }
+              })
+              renderer.Draw(shape)
+            break
+            case 'board':
+              if(Math.abs(boardTheta) > .001){
+                var theta = boardThetaInterval * (boardTheta > 0 ? -1: 1)
+                shape.roll += theta / 6
+                boardTheta += theta / 6
+                pieces.map((v, i) => {
+                  if(i < pieces.length - 1){
+                    v.worldTheta += theta / 6
+                  }
+                })
+              }else{
+                boardTheta = 0
+              }
+              renderer.Draw(shape)
+            break
+            case 'sprite':
+            
+              shape.roll += .0015
+              shape.disableDepthTest = false
+              shape.shader.datasets[0].optionalLighting[0].value = 2
+              shape.z = 2
+              shape.y = 10
+              for(var i = 0; i < shape.vertices.length; i += 3){
+                shape.vertices[i+0] = baseSpriteVerts[i+0]*1.5
+                shape.vertices[i+1] = baseSpriteVerts[i+1]*1.5
+                shape.vertices[i+2] = baseSpriteVerts[i+2]*1.5
+              }
+              renderer.Draw(shape)
+              shape.shader.datasets[0].optionalLighting[0].value = 1
+              shape.z = -.1
+              shape.y = 9.5
+              //shape.roll += Math.PI/4
+              for(var i = 0; i < shape.vertices.length; i += 3){
+                shape.vertices[i+0] = baseSpriteVerts[i+0]/2
+                shape.vertices[i+1] = baseSpriteVerts[i+1]/2
+                shape.vertices[i+2] = baseSpriteVerts[i+2]/2
+              }
+              renderer.Draw(shape)
+              //shape.roll -= Math.PI/4
+            break
+            default:
+              //renderer.Draw(shape)
+            break
+          }
+        })
+      }
+      
+    </script>
   </body>
 </html>
