@@ -11,6 +11,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <link rel="icon" type="image/png" href="board_grey.png">
     <title>TRITRIS [work in progress]</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,31 +26,42 @@
       }
       #header{
         top: 0;
+        padding-left: 20px!important;
+        border-top: 1px solid #f008;
+        z-index: 100;
       }
       #footer{
         top: calc(100vh - 30px);
+        padding-top: 4px!important;
+        text-align: center;
+        border-bottom: 1px solid #f008;
+        z-index: 90;
       }
       #header, #footer{
         width: 100vw;
-        height: 15px;
+        height: 30px;
         background: linear-gradient(90deg,#000,#000,#333,#888,#333,#000,#000);
         position: absolute;
         padding: 10px;
-        font-size: 32px;
-        z-index: 100;
+        font-size: 26px;
         color: #888;
-        line-height: 10px;
+        line-height: 5px;
         font-weight: 900;
-        font-style: italic;
+        box-sizing: border-box;
       }
       #leftBar{
         left: 0;
+        border-left: 1px solid #f008;
       }
       #rightBar{
         left: calc(100vw - 30px);
+        border-right: 1px solid #f008;
       }
       #leftBar, #rightBar{
-        width: 15px;
+        border-top: 1px solid #f008;
+        border-bottom: 1px solid #f008;
+        box-sizing: border-box;
+        width: 30px;
         height: 100vh;
         background: linear-gradient(0deg,#000,#000,#333,#888,#333,#000,#000);
         position: absolute;
@@ -61,20 +73,53 @@
         font-weight: 900;
         font-style: italic;
       }
-      .glow{
-        text-shadow: 3px 3px 4px #f00;
+      .glow1{
+        text-shadow: 1px 2px 3px #0ff;
+      }
+      .glow2{
+        text-shadow: 1px 2px 3px #000;
       }
       .wide{
         transform: scale(2, 1) translate(calc(50% - 20px), 0);
         display: inline-block;
       }
+      .dataField{
+        left: 50%;
+        width: 250px;
+        transform: translate(-120px);
+        color: #aaa;
+        margin-top: 5px;
+        line-height: .5em;
+        text-align: center;
+        margin-left: 40px;
+      }
+      #scoreContainer, #levelContainer{
+        min-width: 75px;
+        border-radius: 5px;
+        border: 1px solid #fff4;
+        background: #000;
+        display: inline-block;
+        line-height: 20px;
+        vertical-align: middle;
+        text-align: center;
+        padding: 0;
+        padding-right: 5px;
+        color: #fff;
+      }
     </style>
   </head>
   <body>
-    <div id="header"><span class="wide glow">TRITRIS</span></div>
-    <div id="footer"><span class="wide glow"></span></div>
-    <div id="leftBar"><span class="wide glow"></span></div>
-    <div id="rightBar"><span class="wide glow"></span></div>
+    <div id="header"><span class="wide glow1">TRITRIS</span></div>
+    <div id="leftBar"></div>
+    <div id="rightBar"></div>
+    <div id="footer">
+      <span class="dataField glow2">
+        score <div id="scoreContainer">-</div>
+      </span>
+      <span class="dataField glow2">
+        level <div id="levelContainer">-</div>
+      </span>
+    </div>
     <script type="module">
       import * as Coordinates from
       "https://srmcgann.github.io/Coordinates/coordinates.min.js"
@@ -82,7 +127,7 @@
       var resolution = 1e3
 
       var rendererOptions = {
-        ambientLight: .5, margin: 30,
+        ambientLight: .5, margin: 28,
         fov: 500, width: resolution / (document.body.clientHeight/document.body.clientWidth), height: resolution,
       }
       var renderer = await Coordinates.Renderer(rendererOptions)
@@ -113,6 +158,14 @@
       
       var x, y, z, p, q, d
       var showDropLocation = true
+      
+      var score, level, initLevel
+      const Init = () => {
+        score = 0
+        initLevel = 0
+        level = 1
+      }
+      Init()
       
       Coordinates.AnimationLoop(renderer, 'Draw')
 
@@ -484,6 +537,41 @@
         refTexture = texture
       }
       
+      const SetEnvironment = env => {
+        switch(env){
+          case 0:
+            SetRefTexture(orefTexture, 1.25)
+          break;
+          case 1:
+            SetRefTexture('https://skyboxes2.verymad.net/images/nebugrid.jpg', 1)
+          break;
+          case 2:
+            SetRefTexture('https://skyboxes2.verymad.net/images/quickgrid.png', .5)
+          break;
+          case 3:
+            SetRefTexture('https://skyboxes2.verymad.net/images/pinkCluds2.jpg', 1)
+          break;
+          case 4:
+            SetRefTexture('https://skyboxes2.verymad.net/images/alices.jpg', 1)
+          break;
+          case 5:
+            SetRefTexture('https://srmcgann.github.io/skyboxes2/HDRI/1.jpg', 1)
+          break;
+          case 6:
+            SetRefTexture('https://srmcgann.github.io/skyboxes/HDRI/9.jpg', 1)
+          break;
+          case 7:
+            SetRefTexture('https://srmcgann.github.io/Coordinates/resources/earth.jpg', 1)
+          break;
+          case 8:
+            SetRefTexture('https://srmcgann.github.io/skyboxes3/HDRI/angels.jpg', 1)
+          break;
+          case 9:
+            SetRefTexture('https://srmcgann.github.io/skyboxes7/HDRI/space.jpg', 1)
+          break
+        }
+      }
+      
       const DoKeys = () =>{
         var t = renderer.frameCount / 60
         keys.map((state, key) => {
@@ -496,7 +584,7 @@
                   shapes.filter(v=>v.name=='board')[0].color =
                        Coordinates.HSVToHex(0,0,0)
                 }else{
-                  SetRefTexture(orefTexture, 1.25)
+                  SetEnvironment(key-49)
                 }
               break
               case 50:
@@ -506,7 +594,7 @@
                   shapes.filter(v=>v.name=='board')[0].color =
                        Coordinates.HSVToHex(360/9*(key-49),1,.1)
                 }else{
-                  SetRefTexture('https://skyboxes2.verymad.net/images/nebugrid.jpg', 1)
+                  SetEnvironment(key-49)
                 }
               break
               case 51:
@@ -516,7 +604,7 @@
                   shapes.filter(v=>v.name=='board')[0].color =
                        Coordinates.HSVToHex(360/9*(key-49),1,.1)
                 }else{
-                  SetRefTexture('https://skyboxes2.verymad.net/images/quickgrid.png', .5)
+                  SetEnvironment(key-49)
                 }
               break
               case 52:
@@ -526,7 +614,7 @@
                   shapes.filter(v=>v.name=='board')[0].color =
                        Coordinates.HSVToHex(360/9*(key-49),1,.1)
                 }else{
-                  SetRefTexture('https://skyboxes2.verymad.net/images/pinkCluds2.jpg', 1)
+                  SetEnvironment(key-49)
                 }
               break
               case 53:
@@ -536,7 +624,7 @@
                   shapes.filter(v=>v.name=='board')[0].color =
                        Coordinates.HSVToHex(360/9*(key-49),1,.1)
                 }else{
-                  SetRefTexture('https://skyboxes2.verymad.net/images/alices.jpg', 1)
+                  SetEnvironment(key-49)
                 }
               break
               case 54:
@@ -546,7 +634,7 @@
                   shapes.filter(v=>v.name=='board')[0].color =
                        Coordinates.HSVToHex(360/9*(key-49),1,.1)
                 }else{
-                  SetRefTexture('https://srmcgann.github.io/skyboxes2/HDRI/1.jpg', 1)
+                  SetEnvironment(key-49)
                 }
               break
               case 55:
@@ -556,7 +644,7 @@
                   shapes.filter(v=>v.name=='board')[0].color =
                        Coordinates.HSVToHex(360/9*(key-49),1,.1)
                 }else{
-                  SetRefTexture('https://srmcgann.github.io/skyboxes/HDRI/9.jpg', 1.25)
+                  SetEnvironment(key-49)
                 }
               break
               case 56:
@@ -566,7 +654,7 @@
                   shapes.filter(v=>v.name=='board')[0].color =
                        Coordinates.HSVToHex(360/9*(key-49),1,.1)
                 }else{
-                  SetRefTexture('https://srmcgann.github.io/Coordinates/resources/earth.jpg', 1)
+                  SetEnvironment(key-49)
                 }
               break
               case 57:
@@ -576,7 +664,7 @@
                   shapes.filter(v=>v.name=='board')[0].color =
                        Coordinates.HSVToHex(360/9*(key-49),1,.1)
                 }else{
-                  SetRefTexture('https://srmcgann.github.io/skyboxes3/HDRI/angels.jpg', 1)
+                  SetEnvironment(key-49)
                 }
               break
               case 48:
@@ -586,7 +674,7 @@
                   shapes.filter(v=>v.name=='board')[0].color =
                        Coordinates.HSVToHex(360/9*(key-49),1,.1)
                 }else{
-                  SetRefTexture('https://srmcgann.github.io/skyboxes7/HDRI/space.jpg', 1)
+                  SetEnvironment(key-49)
                 }
               break
               case 65: // a
@@ -1141,7 +1229,20 @@
         if(toDel.length){
           ReleaseSampleCenter(toDel)
           ReleaseSample(toDel)
+          score += toDel.length
+          SetScore(score)
         }
+      }
+      
+      const SetScore = score => {
+        var el = document.querySelector('#scoreContainer')
+        el.innerHTML = score
+        level = score / 100 | 0
+        var env = level%10
+        SetEnvironment(env)
+
+        el = document.querySelector('#levelContainer')
+        el.innerHTML = initLevel + level + 1
       }
       
       var flashes = []
@@ -1337,13 +1438,16 @@
       SpawnPiece(Rn() * 7 | 0)
       //SpawnPiece(4)
       
+      
+      SetScore(score)
+      
       window.Draw = () => {
         var t = renderer.frameCount / 60
         
         //renderer.yaw = S(t/2)/32
         //renderer.pitch = C(t/2)/32
         
-        if(!((t*60|0)%(240/(1+level/4)|0))){
+        if(!((t*60|0)%((150/(1+(initLevel+level)/14))/(1+level/4)|0))){
           if(Math.abs(boardTheta) < .001){
             if(Test('down')){
               pieces[pieces.length-1].oy -= 2
@@ -1361,7 +1465,7 @@
         shapes.forEach(shape => {
           switch(shape.name){
             case 'background':
-              shape.yaw -= C(t/16) / 500 - .002
+              shape.yaw -= C(t/16) / 1e3 - .001
               shapes.filter(v=>v.name=='board')[0].shader.datasets[0].optionalUniforms.filter(v=>v.name=='refraction2')[0].theta = shape.yaw
               renderer.Draw(shape)
             break
@@ -1388,7 +1492,7 @@
                   y = C(p) * d
                   shape.vertices[idx + 0] = x + ix
                   shape.vertices[idx + 1] = y + iy + 8
-                  shape.vertices[idx + 2] = (sample.subShape.baseVertices[idx2 + 2] * 1 + sample.subShape.z + sample.oz) * .5 -.05
+                  shape.vertices[idx + 2] = (sample.subShape.baseVertices[idx2 + 2] + sample.subShape.z + sample.oz) * .5 -.05
                 })
               })
               renderer.Draw(shape)
@@ -1421,8 +1525,8 @@
                   x = S(p) * d
                   y = C(p) * d
                   x = shape.vertices[idx + 0] = x + ix
-                  y = shape.vertices[idx + 1] = y + iy + 8
-                  z = shape.vertices[idx + 2] = (piece.subShape.baseVertices[idx2 + 2] * 1 + piece.subShape.z) * .05 -.2
+                  y = shape.vertices[idx + 1] = y + iy + 8.166
+                  z = shape.vertices[idx + 2] = (piece.subShape.baseVertices[idx2 + 2] + piece.subShape.z) * .05 -.2
                 })
               })
               //shape.disableDepthTest = true
